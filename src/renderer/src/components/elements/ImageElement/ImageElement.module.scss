@@ -1,0 +1,139 @@
+@use '../../../styles/variables' as *;
+
+.polaroid {
+  position: absolute;
+  background: #ffffff;
+  padding: 12px 12px 0 12px;
+  box-shadow: $shadow-polaroid;
+  border-radius: 2px;
+  display: inline-flex;
+  flex-direction: column;
+  transition: box-shadow $transition-fast;
+  user-select: none;
+
+  // Tape strip at the top
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-1.5deg);
+    width: 60%;
+    height: 16px;
+    background: rgba(255, 220, 100, 0.7);
+    border-radius: 2px;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  &.selected {
+    box-shadow: $shadow-polaroid, 0 0 0 3px $selection-color;
+  }
+
+  &.connectable {
+    &:hover {
+      box-shadow: $shadow-polaroid, 0 0 0 3px #e74c3c, 0 0 16px rgba(231, 76, 60, 0.45);
+    }
+  }
+
+  &.connectionSource {
+    &:hover {
+      box-shadow: $shadow-polaroid, 0 0 0 2px #27ae60, 0 0 12px rgba(39, 174, 96, 0.35);
+    }
+  }
+
+  &.pendingSource {
+    box-shadow: $shadow-polaroid, 0 0 0 3px #27ae60, 0 0 14px rgba(39, 174, 96, 0.45);
+  }
+
+  // Active hover when about to complete a connection
+  &.connTarget {
+    box-shadow: $shadow-polaroid, 0 0 0 3px #e74c3c, 0 0 22px rgba(231, 76, 60, 0.65);
+    transition: box-shadow 0.1s ease;
+  }
+}
+
+.photo {
+  overflow: hidden;
+  background: #f0ece4;
+  flex-shrink: 0;
+}
+
+.captionArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px 4px;
+}
+
+.caption {
+  font-family: $font-caveat;
+  font-size: 15px;
+  color: #555;
+  text-align: center;
+  cursor: text;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.captionInput {
+  font-family: $font-caveat;
+  font-size: 15px;
+  color: #333;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  padding: 0;
+}
+
+.controls {
+  position: absolute;
+  top: -14px;
+  right: -8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.deleteBtn,
+.connectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform $transition-fast;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+}
+
+.deleteBtn {
+  background: #e74c3c;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.connectBtn {
+  background: #27ae60;
+  color: white;
+  font-size: 13px;
+}
+
+.connPin {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  z-index: 1;
+}
