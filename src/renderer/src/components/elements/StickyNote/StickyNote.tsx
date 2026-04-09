@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
 import type { StickyNoteElement } from '../../../types';
+import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './StickyNote.module.scss';
 
 interface StickyNoteProps {
@@ -25,6 +26,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   onCompleteConnection
 }) => {
   const zoom = useWhiteboardStore((s) => s.zoom);
+  const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
   const [isEditing, setIsEditing] = useState(false);
   const [isConnHovered, setIsConnHovered] = useState(false);
@@ -132,6 +134,18 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
         />
       ) : (
         <div className={styles.text}>{element.text || <span className={styles.placeholder}>Double-click to edit</span>}</div>
+      )}
+
+      {/* Resize handles */}
+      {isSelected && !isEditing && tool === 'select' && (
+        <ResizeHandles
+          zoom={zoom}
+          pan={pan}
+          element={element}
+          onUpdate={onUpdate}
+          minWidth={80}
+          minHeight={60}
+        />
       )}
 
       {/* Selection controls */}

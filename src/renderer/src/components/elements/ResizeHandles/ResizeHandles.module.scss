@@ -1,0 +1,57 @@
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #7c6aff;
+  border-radius: 2px;
+  // Centre the handle on the corner/edge point
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  pointer-events: all;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: background 0.1s;
+
+  &:hover {
+    background: #7c6aff;
+  }
+}
+
+.rotateLine {
+  position: absolute;
+  width: 1px;
+  background: rgba(124, 106, 255, 0.5);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 199;
+}
+
+.rotateHandle {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #7c6aff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  pointer-events: all;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #7c6aff;
+  user-select: none;
+  transition: background 0.1s, color 0.1s;
+
+  &:hover {
+    background: #7c6aff;
+    color: #fff;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}

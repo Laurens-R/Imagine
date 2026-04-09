@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
 import type { ImageElement } from '../../../types';
+import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './ImageElement.module.scss';
 
 interface ImageElProps {
@@ -25,6 +26,7 @@ export const ImageEl: React.FC<ImageElProps> = ({
   onCompleteConnection
 }) => {
   const zoom = useWhiteboardStore((s) => s.zoom);
+  const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
   const [editingCaption, setEditingCaption] = useState(false);
@@ -127,6 +129,20 @@ export const ImageEl: React.FC<ImageElProps> = ({
           </span>
         )}
       </div>
+
+      {/* Resize handles – inset to the photo boundary */}
+      {isSelected && tool === 'select' && (
+        <ResizeHandles
+          zoom={zoom}
+          pan={pan}
+          element={element}
+          onUpdate={onUpdate}
+          offsetX={polaroidPad}
+          offsetY={polaroidPad}
+          minWidth={60}
+          minHeight={60}
+        />
+      )}
 
       {/* Controls */}
       {isSelected && (

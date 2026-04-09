@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
 import type { TextBoxElement } from '../../../types';
+import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './TextBox.module.scss';
 
 interface TextBoxProps {
@@ -25,6 +26,7 @@ export const TextBox: React.FC<TextBoxProps> = ({
   onCompleteConnection
 }) => {
   const zoom = useWhiteboardStore((s) => s.zoom);
+  const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
   // Start in edit mode when the text box is freshly created (empty text)
   const [isEditing, setIsEditing] = useState(!element.text);
@@ -177,6 +179,17 @@ export const TextBox: React.FC<TextBoxProps> = ({
         >
           {element.text || <span className={styles.placeholder}>Double-click to edit</span>}
         </div>
+      )}
+
+      {isSelected && !isEditing && tool === 'select' && (
+        <ResizeHandles
+          zoom={zoom}
+          pan={pan}
+          element={element}
+          onUpdate={onUpdate}
+          minWidth={60}
+          minHeight={30}
+        />
       )}
 
       {isSelected && !isEditing && (

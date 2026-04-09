@@ -23,6 +23,7 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
   onCompleteConnection
 }) => {
   const zoom = useWhiteboardStore((s) => s.zoom);
+  const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
   const [isConnHovered, setIsConnHovered] = useState(false);
@@ -161,44 +162,121 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
         style={{ cursor: tool === 'select' ? 'grab' : 'default' }}
       />
 
-      {/* Resize handle (bottom-right corner) */}
-      {isSelected && (
-        <ResizeHandle
-          x={x + width}
-          y={y + height}
+      {/* Resize handles – 8 positions */}
+      {isSelected && tool === 'select' && (
+        <SVGResizeHandles
+          el={{ x, y, width, height, rotation }}
           zoom={zoom}
-          onResize={(dx, dy) => {
-            onUpdate({ width: Math.max(20, width + dx), height: Math.max(20, height + dy) });
-          }}
+          pan={pan}
+          onUpdate={onUpdate}
         />
       )}
     </g>
   );
 };
 
-interface ResizeHandleProps {
-  x: number;
-  y: number;
+// ── SVG Resize Handles ────────────────────────────────────────────────────────
+
+type HandleType = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
+const SVG_HANDLES: { handle: HandleType; cursor: string }[] = [
+  { handle: 'nw', cursor: 'nwse-resize' },
+  { handle: 'n',  cursor: 'ns-resize'   },
+  { handle: 'ne', cursor: 'nesw-resize' },
+  { handle: 'e',  cursor: 'ew-resize'   },
+  { handle: 'se', cursor: 'nwse-resize' },
+  { handle: 's',  cursor: 'ns-resize'   },
+  { handle: 'sw', cursor: 'nesw-resize' },
+  { handle: 'w',  cursor: 'ew-resize'   },
+];
+
+interface SVGResizeHandlesProps {
+  el: { x: number; y: number; width: number; height: number; rotation: number };
   zoom: number;
-  onResize: (dx: number, dy: number) => void;
+  pan: { x: number; y: number };
+  onUpdate: (updates: Partial<ShapeElement>) => void;
 }
 
-const ResizeHandle: React.FC<ResizeHandleProps> = ({ x, y, zoom, onResize }) => {
-  const start = useRef<{ mx: number; my: number } | null>(null);
+const SVGResizeHandles: React.FC<SVGResizeHandlesProps> = ({ el, zoom, pan, onUpdate }) => {
+  const startRef = useRef<{
+    mx: number; my: number;
+    ex: number; ey: number; ew: number; eh: number;
+  } | null>(null);
+  const rotateStartRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const getHandlePos = (handle: HandleType) => {
+    const { x, y, width, height } = el;
+    const map: Record<HandleType, [number, number]> = {
+      nw: [x,            y           ],
+      n:  [x + width / 2, y           ],
+      ne: [x + width,    y           ],
+      e:  [x + width,    y + height / 2],
+      se: [x + width,    y + height  ],
+      s:  [x + width / 2, y + height  ],
+      sw: [x,            y + height  ],
+      w:  [x,            y + height / 2],
+    };
+    return map[handle];
+  };
+
+  const handleMouseDown = (e: React.MouseEvent, handle: HandleType) => {
     e.stopPropagation();
-    start.current = { mx: e.clientX, my: e.clientY };
+    e.preventDefault();
+    startRef.current = {
+      mx: e.clientX, my: e.clientY,
+      ex: el.x, ey: el.y, ew: el.width, eh: el.height,
+    };
 
     const onMove = (ev: MouseEvent) => {
-      if (!start.current) return;
-      const dx = (ev.clientX - start.current.mx) / zoom;
-      const dy = (ev.clientY - start.current.my) / zoom;
-      start.current = { mx: ev.clientX, my: ev.clientY };
-      onResize(dx, dy);
+      if (!startRef.current) return;
+      const { mx, my, ex, ey, ew, eh } = startRef.current;
+      const dx = (ev.clientX - mx) / zoom;
+      const dy = (ev.clientY - my) / zoom;
+
+      let nx = ex, ny = ey, nw = ew, nh = eh;
+      if (handle.includes('w')) { nx = ex + dx; nw = ew - dx; }
+      if (handle.includes('e')) { nw = ew + dx; }
+      if (handle.includes('n')) { ny = ey + dy; nh = eh - dy; }
+      if (handle.includes('s')) { nh = eh + dy; }
+
+      const MIN = 20;
+      if (nw < MIN) { if (handle.includes('w')) nx = ex + ew - MIN; nw = MIN; }
+      if (nh < MIN) { if (handle.includes('n')) ny = ey + eh - MIN; nh = MIN; }
+
+      onUpdate({ x: nx, y: ny, width: nw, height: nh });
+    };
+
+    const onUp = () => {
+      startRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const hs = 6 / zoom; // half handle size in canvas units → ~6px on screen
+  const pad = 6; // matches selection rect padding
+  const rotOff = 22 / zoom; // rotation handle distance above selection box
+
+  const rotateMD = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const screenCX = (el.x + el.width / 2) * zoom + pan.x;
+    const screenCY = (el.y + el.height / 2) * zoom + pan.y;
+    const startAngle = Math.atan2(e.clientY - screenCY, e.clientX - screenCX) * (180 / Math.PI);
+    rotateStartRef.current = { startAngle, startRotation: el.rotation };
+
+    const onMove = (ev: MouseEvent) => {
+      if (!rotateStartRef.current) return;
+      const { startAngle: sa, startRotation } = rotateStartRef.current;
+      const angle = Math.atan2(ev.clientY - screenCY, ev.clientX - screenCX) * (180 / Math.PI);
+      let newRotation = startRotation + (angle - sa);
+      if (ev.shiftKey) newRotation = Math.round(newRotation / 45) * 45;
+      onUpdate({ rotation: newRotation });
     };
     const onUp = () => {
-      start.current = null;
+      rotateStartRef.current = null;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
@@ -207,17 +285,45 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ x, y, zoom, onResize }) => 
   };
 
   return (
-    <rect
-      x={x - 6}
-      y={y - 6}
-      width={12}
-      height={12}
-      rx={2}
-      fill="#7c6aff"
-      stroke="white"
-      strokeWidth={1.5}
-      style={{ cursor: 'nwse-resize' }}
-      onMouseDown={handleMouseDown}
-    />
+    <>
+      {SVG_HANDLES.map(({ handle, cursor }) => {
+        const [cx, cy] = getHandlePos(handle);
+        return (
+          <rect
+            key={handle}
+            x={cx - hs}
+            y={cy - hs}
+            width={hs * 2}
+            height={hs * 2}
+            rx={hs * 0.33}
+            fill="white"
+            stroke="#7c6aff"
+            strokeWidth={1.5 / zoom}
+            style={{ cursor }}
+            onMouseDown={(e) => handleMouseDown(e, handle)}
+          />
+        );
+      })}      {/* Rotation stem */}
+      <line
+        x1={el.x + el.width / 2}
+        y1={el.y - pad}
+        x2={el.x + el.width / 2}
+        y2={el.y - pad - rotOff}
+        stroke="#7c6aff"
+        strokeWidth={1.5 / zoom}
+        opacity={0.6}
+        pointerEvents="none"
+      />
+      {/* Rotation handle */}
+      <circle
+        cx={el.x + el.width / 2}
+        cy={el.y - pad - rotOff}
+        r={hs * 1.5}
+        fill="white"
+        stroke="#7c6aff"
+        strokeWidth={1.5 / zoom}
+        style={{ cursor: 'grab' }}
+        onMouseDown={rotateMD}
+      />    </>
   );
 };
