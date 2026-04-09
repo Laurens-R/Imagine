@@ -1,5 +1,3 @@
-import { ElectronAPI } from '@electron-toolkit/preload';
-
 interface WhiteboardAPI {
   minimize: () => void;
   maximize: () => void;
@@ -8,10 +6,6 @@ interface WhiteboardAPI {
   openBoard: () => Promise<{ filePath?: string; data?: string; canceled?: boolean }>;
 }
 
-declare global {
-  interface Window {
-    electron: ElectronAPI;
-    api: Record<string, never>;
-    whiteboardApi: WhiteboardAPI;
-  }
+declare interface Window {
+  whiteboardApi: WhiteboardAPI;
 }

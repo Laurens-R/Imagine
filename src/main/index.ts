@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
 import { join } from 'path';
+import { readFile, writeFile } from 'fs/promises';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
 function createWindow(): void {
@@ -10,7 +11,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: 'hiddenInset',
+    frame: false,
     backgroundColor: '#fafaf8',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -40,6 +41,41 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  // ── Window control IPC ───────────────────────────────────────────────────
+  ipcMain.on('win:minimize', () => mainWindow.minimize());
+  ipcMain.on('win:maximize', () => {
+    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+  });
+  ipcMain.on('win:close', () => mainWindow.close());
+
+  // ── File IPC ─────────────────────────────────────────────────────────────
+  ipcMain.handle('board:save', async (_e, data: string, filePath?: string) => {
+    let savePath = filePath;
+    if (!savePath) {
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save Whiteboard',
+        defaultPath: 'whiteboard.imagine',
+        filters: [{ name: 'Imagine Whiteboard', extensions: ['imagine'] }]
+      });
+      if (result.canceled || !result.filePath) return { canceled: true };
+      savePath = result.filePath;
+    }
+    await writeFile(savePath, data, 'utf8');
+    return { filePath: savePath };
+  });
+
+  ipcMain.handle('board:open', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Open Whiteboard',
+      filters: [{ name: 'Imagine Whiteboard', extensions: ['imagine'] }],
+      properties: ['openFile']
+    });
+    if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+    const filePath = result.filePaths[0];
+    const data = await readFile(filePath, 'utf8');
+    return { filePath, data };
+  });
 }
 
 app.whenReady().then(() => {

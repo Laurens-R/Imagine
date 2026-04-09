@@ -77,8 +77,13 @@ export const Whiteboard: React.FC = () => {
     addConnection,
     undo,
     redo,
-    snapshot
+    snapshot,
+    loadBoard,
+    setCurrentFile,
+    clearAll
   } = useWhiteboardStore();
+
+  const currentFile = useWhiteboardStore((s) => s.currentFile);
 
   // ── Local interaction state ────────────────────────────────────────────────
   const [activeDrawing, setActiveDrawing] = useState<ActiveDrawing | null>(null);
@@ -126,6 +131,35 @@ export const Whiteboard: React.FC = () => {
         e.preventDefault();
         redo();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
+        e.preventDefault();
+        const { elements: els, connections: conns, currentFile: cf } = useWhiteboardStore.getState();
+        const data = JSON.stringify({ elements: els, connections: conns }, null, 2);
+        window.whiteboardApi.saveBoard(data, cf ?? undefined).then((r) => {
+          if (!r.canceled && r.filePath) setCurrentFile(r.filePath);
+        });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        window.whiteboardApi.openBoard().then((r) => {
+          if (!r.canceled && r.data && r.filePath) {
+            try {
+              const parsed = JSON.parse(r.data);
+              loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath);
+            } catch { /* ignore */ }
+          }
+        });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        const { elements: els, connections: conns } = useWhiteboardStore.getState();
+        if (els.length > 0 || conns.length > 0) {
+          if (!window.confirm('Discard current whiteboard and start a new one?')) return;
+        }
+        snapshot();
+        clearAll();
+        setCurrentFile(null);
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
@@ -158,7 +192,7 @@ export const Whiteboard: React.FC = () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [selectedId, selectedIds, removeElement, setSelectedId, setSelectedIds, setPendingConnection, undo, redo, snapshot]);
+  }, [selectedId, selectedIds, removeElement, setSelectedId, setSelectedIds, setPendingConnection, undo, redo, snapshot, loadBoard, setCurrentFile, clearAll]);
 
   // ── Prevent Electron from navigating on file drag-drop ────────────────────
   useEffect(() => {

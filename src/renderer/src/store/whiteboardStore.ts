@@ -55,6 +55,9 @@ interface WhiteboardState {
   // Canvas dimensions (virtual)
   canvasWidth: number;
   canvasHeight: number;
+
+  // Persisted file path
+  currentFile: string | null;
 }
 
 interface WhiteboardActions {
@@ -101,6 +104,10 @@ interface WhiteboardActions {
 
   // Bulk
   clearAll: () => void;
+
+  // File
+  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string) => void;
+  setCurrentFile: (filePath: string | null) => void;
 }
 
 type WhiteboardStore = WhiteboardState & WhiteboardActions;
@@ -134,6 +141,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     redoStack: [],
     canvasWidth: CANVAS_WIDTH,
     canvasHeight: CANVAS_HEIGHT,
+    currentFile: null,
 
     // ── Tool Actions ───────────────────────────────────────────────────────
     setTool: (tool) =>
@@ -315,6 +323,24 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.connections = [];
         state.selectedId = null;
         state.selectedIds = [];
+      }),
+
+    loadBoard: (elements, connections, filePath) =>
+      set((state) => {
+        state.elements = elements;
+        state.connections = connections;
+        state.selectedId = null;
+        state.selectedIds = [];
+        state.undoStack = [];
+        state.redoStack = [];
+        state.currentFile = filePath;
+        state.zoom = 1;
+        state.pan = { x: 0, y: 0 };
+      }),
+
+    setCurrentFile: (filePath) =>
+      set((state) => {
+        state.currentFile = filePath;
       })
   }))
 );
