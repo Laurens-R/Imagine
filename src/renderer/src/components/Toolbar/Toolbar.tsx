@@ -58,6 +58,12 @@ const IconImage = () => (
     <path d="M21 15l-5-5L5 21" />
   </svg>
 );
+const IconArrow = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="19" x2="19" y2="5" />
+    <polyline points="9 5 19 5 19 15" />
+  </svg>
+);
 const IconUndo = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 7v6h6" />
@@ -184,12 +190,13 @@ export const Toolbar: React.FC = () => {
     { id: 'sticky-note', icon: <IconStickyNote />, label: 'Sticky Note (S)' },
     { id: 'text-box', icon: <IconTextBox />, label: 'Text Box (T)' },
     { id: 'shape', icon: <IconShape />, label: 'Shape (R)' },
+    { id: 'arrow', icon: <IconArrow />, label: 'Arrow (A)' },
     { id: 'connection', icon: <IconConnection />, label: 'Connection (C)' },
     { id: 'image', icon: <IconImage />, label: 'Image (I)' }
   ];
 
-  const showColorPicker = ['sharpie', 'shape', 'text-box'].includes(tool);
-  const showSizeSlider = tool === 'sharpie';
+  const showColorPicker = ['sharpie', 'shape', 'text-box', 'arrow'].includes(tool);
+  const showSizeSlider = ['sharpie', 'arrow'].includes(tool);
   const showFontOptions = ['sticky-note', 'text-box'].includes(tool);
   const showStickyColors = tool === 'sticky-note';
   const showRoughnessSlider = tool === 'shape';

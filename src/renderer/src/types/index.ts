@@ -8,7 +8,8 @@ export type ToolType =
   | 'text-box'
   | 'shape'
   | 'connection'
-  | 'image';
+  | 'image'
+  | 'arrow';
 
 export type ShapeType =
   | 'rectangle'
@@ -98,12 +99,22 @@ export interface ImageElement extends SizedElement {
   caption: string;
 }
 
+/** Two-point arrow */
+export interface ArrowElement extends BaseElement {
+  type: 'arrow';
+  x2: number;
+  y2: number;
+  color: string;
+  strokeWidth: number;
+}
+
 export type WhiteboardElement =
   | DrawingElement
   | StickyNoteElement
   | TextBoxElement
   | ShapeElement
-  | ImageElement;
+  | ImageElement
+  | ArrowElement;
 
 // ─── Connection Types ─────────────────────────────────────────────────────────
 

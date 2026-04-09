@@ -11,6 +11,7 @@ import { TextBox } from '../elements/TextBox/TextBox';
 import { ImageEl } from '../elements/ImageElement/ImageElement';
 import { ShapeEl } from '../elements/ShapeElement/ShapeElement';
 import { Connection } from '../elements/Connection/Connection';
+import { ArrowEl } from '../elements/ArrowElement/ArrowElement';
 import type {
   ActiveDrawing,
   ShapePreview,
@@ -19,7 +20,8 @@ import type {
   StickyNoteElement,
   TextBoxElement,
   ShapeElement,
-  ImageElement
+  ImageElement,
+  ArrowElement
 } from '../../types';
 import styles from './Whiteboard.module.scss';
 
@@ -34,6 +36,11 @@ function getElementBounds(el: WhiteboardElement): { x: number; y: number; w: num
     const x = Math.min(...xs);
     const y = Math.min(...ys);
     return { x, y, w: Math.max(...xs) - x || 1, h: Math.max(...ys) - y || 1 };
+  }
+  if (el.type === 'arrow') {
+    const x = Math.min(el.x, el.x2);
+    const y = Math.min(el.y, el.y2);
+    return { x, y, w: Math.abs(el.x2 - el.x) || 1, h: Math.abs(el.y2 - el.y) || 1 };
   }
   const s = el as { x: number; y: number; width: number; height: number };
   return { x: s.x, y: s.y, w: s.width, h: s.height };
@@ -104,6 +111,10 @@ export const Whiteboard: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagePos = useRef<{ x: number; y: number } | null>(null);
 
+  // Arrow tool – first click sets start, second click commits
+  const [arrowStart, setArrowStart] = useState<{ x: number; y: number } | null>(null);
+  const [arrowPreview, setArrowPreview] = useState<{ x: number; y: number } | null>(null);
+
   // ── Coordinate helpers ─────────────────────────────────────────────────────
   const toCanvas = useCallback(
     (clientX: number, clientY: number) => {
@@ -160,6 +171,12 @@ export const Whiteboard: React.FC = () => {
         clearAll();
         setCurrentFile(null);
       }
+      if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('arrow');
+        }
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
@@ -175,6 +192,8 @@ export const Whiteboard: React.FC = () => {
         setPendingConnection(null);
         setShapePreview(null);
         setShapeStart(null);
+        setArrowStart(null);
+        setArrowPreview(null);
         isDrawingRef.current = false;
         setActiveDrawing(null);
         lassoStartRef.current = null;
@@ -331,6 +350,32 @@ export const Whiteboard: React.FC = () => {
           break;
         }
 
+        case 'arrow': {
+          if (!arrowStart) {
+            // First click – set start point
+            setArrowStart({ x, y });
+            setArrowPreview({ x, y });
+          } else {
+            // Second click – commit the arrow
+            snapshot();
+            const arrowEl: Omit<ArrowElement, 'id' | 'zIndex'> = {
+              type: 'arrow',
+              x: arrowStart.x,
+              y: arrowStart.y,
+              x2: x,
+              y2: y,
+              rotation: 0,
+              color,
+              strokeWidth
+            };
+            addElement(arrowEl);
+            setArrowStart(null);
+            setArrowPreview(null);
+            setTool('select');
+          }
+          break;
+        }
+
         case 'select': {
           // If a connection is pending, cancel it; otherwise start lasso tracking
           if (pendingConnection) {
@@ -361,7 +406,8 @@ export const Whiteboard: React.FC = () => {
     [
       isSpaceDown, pan, toCanvas, tool, color, strokeWidth, font, fontSize,
       shapeType, stickyColor, roughness, opacity, snapshot, removeDrawingsAt,
-      addElement, setSelectedId, setPendingConnection, pendingConnection
+      addElement, setSelectedId, setPendingConnection, pendingConnection,
+      arrowStart, setArrowStart, setArrowPreview
     ]
   );
 
@@ -419,8 +465,13 @@ export const Whiteboard: React.FC = () => {
       if (pendingConnection) {
         setPendingConnection({ ...pendingConnection, currentX: x, currentY: y });
       }
+
+      // Arrow preview – track cursor after first click
+      if (tool === 'arrow' && arrowStart) {
+        setArrowPreview({ x, y });
+      }
     },
-    [isPanning, toCanvas, tool, activeDrawing, shapeStart, shapePreview, pendingConnection, setPan, removeDrawingsAt, setPendingConnection, setLasso]
+    [isPanning, toCanvas, tool, activeDrawing, shapeStart, shapePreview, pendingConnection, setPan, removeDrawingsAt, setPendingConnection, setLasso, arrowStart, setArrowPreview]
   );
 
   const handleMouseUp = useCallback(
@@ -595,6 +646,7 @@ export const Whiteboard: React.FC = () => {
       case 'text-box': return 'text';
       case 'connection': return 'crosshair';
       case 'image': return 'copy';
+      case 'arrow': return arrowStart ? 'crosshair' : 'crosshair';
       default: return 'default';
     }
   };
@@ -612,6 +664,7 @@ export const Whiteboard: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
   const drawings = elements.filter((el) => el.type === 'drawing') as DrawingElement[];
   const shapes = elements.filter((el) => el.type === 'shape') as ShapeElement[];
+  const arrows = elements.filter((el) => el.type === 'arrow') as ArrowElement[];
   const htmlEls = elements.filter((el) =>
     el.type === 'sticky-note' || el.type === 'text-box' || el.type === 'image'
   );
@@ -645,7 +698,7 @@ export const Whiteboard: React.FC = () => {
           height={canvasHeight}
           style={{
             // 'all' lets SVG shapes/drawings receive click events for select & connection tools
-            pointerEvents: (tool === 'select' || tool === 'connection') ? 'all' : 'none'
+            pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow') ? 'all' : 'none'
           }}
         >
           {/* Completed drawings */}
@@ -701,6 +754,31 @@ export const Whiteboard: React.FC = () => {
           {/* Shape preview while drawing */}
           {shapePreview && shapePreview.width > 2 && shapePreview.height > 2 && (
             <PreviewShape preview={shapePreview} />
+          )}
+
+          {/* Arrows */}
+          {arrows.map((el) => (
+            <ArrowEl
+              key={el.id}
+              element={el}
+              isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+              tool={tool}
+              onSelect={() => setSelectedId(el.id)}
+              onUpdate={(updates) => updateElement(el.id, updates)}
+            />
+          ))}
+
+          {/* Arrow preview line while placing */}
+          {arrowStart && arrowPreview && (
+            <g opacity={0.6}>
+              <line
+                x1={arrowStart.x} y1={arrowStart.y}
+                x2={arrowPreview.x} y2={arrowPreview.y}
+                stroke={color} strokeWidth={strokeWidth}
+                strokeLinecap="round" strokeDasharray="6 4"
+              />
+              <circle cx={arrowStart.x} cy={arrowStart.y} r={4} fill={color} />
+            </g>
           )}
 
           {/* Connections */}
