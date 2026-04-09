@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
+import { snapVal } from '../../../utils/snap';
 import type { ImageElement } from '../../../types';
 import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './ImageElement.module.scss';
@@ -28,6 +29,8 @@ export const ImageEl: React.FC<ImageElProps> = ({
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
   const [editingCaption, setEditingCaption] = useState(false);
   const [isConnHovered, setIsConnHovered] = useState(false);
@@ -55,8 +58,8 @@ export const ImageEl: React.FC<ImageElProps> = ({
       const onMove = (ev: MouseEvent) => {
         if (!dragStart.current) return;
         onUpdate({
-          x: dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
-          y: dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
+          x: gridEnabled ? snapVal(dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom, gridSize) : dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
+          y: gridEnabled ? snapVal(dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom, gridSize) : dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
         });
       };
       const onUp = () => {
@@ -67,7 +70,7 @@ export const ImageEl: React.FC<ImageElProps> = ({
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [tool, element.id, element.x, element.y, pendingConn, zoom, onSelect, onUpdate, onStartConnection, onCompleteConnection]
+    [tool, element.id, element.x, element.y, pendingConn, zoom, gridEnabled, gridSize, onSelect, onUpdate, onStartConnection, onCompleteConnection]
   );
 
   const isPendingSource = pendingConn != null && pendingConn.sourceId === element.id;

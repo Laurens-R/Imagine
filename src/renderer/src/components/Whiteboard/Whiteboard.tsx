@@ -5,6 +5,7 @@ import { generateDrawingPath, generateDotPath } from '../../utils/drawing';
 import { generatePreviewRoughPaths, idToSeed } from '../../utils/roughShapes';
 import { screenToCanvas, naturalRotation, polaroidRotation } from '../../utils/helpers';
 import { getElementCenter, getStringPath } from '../../utils/helpers';
+import { snapVal } from '../../utils/snap';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { StickyNote } from '../elements/StickyNote/StickyNote';
 import { TextBox } from '../elements/TextBox/TextBox';
@@ -69,6 +70,8 @@ export const Whiteboard: React.FC = () => {
   const pendingConnection = useWhiteboardStore((s) => s.pendingConnection);
   const canvasWidth = useWhiteboardStore((s) => s.canvasWidth);
   const canvasHeight = useWhiteboardStore((s) => s.canvasHeight);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
 
   const {
     addElement,
@@ -122,6 +125,15 @@ export const Whiteboard: React.FC = () => {
       return screenToCanvas(clientX, clientY, containerRef.current.getBoundingClientRect(), pan, zoom);
     },
     [pan, zoom]
+  );
+
+  /** Snap canvas coordinates to grid when grid is enabled. */
+  const snap = useCallback(
+    (x: number, y: number) => ({
+      x: gridEnabled ? snapVal(x, gridSize) : x,
+      y: gridEnabled ? snapVal(y, gridSize) : y
+    }),
+    [gridEnabled, gridSize]
   );
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
@@ -262,7 +274,8 @@ export const Whiteboard: React.FC = () => {
         return;
       }
 
-      const { x, y } = toCanvas(e.clientX, e.clientY);
+      const { x: rawX, y: rawY } = toCanvas(e.clientX, e.clientY);
+      const { x, y } = snap(rawX, rawY);
 
       switch (tool) {
         case 'sharpie': {
@@ -303,10 +316,11 @@ export const Whiteboard: React.FC = () => {
 
         case 'sticky-note': {
           snapshot();
+          const { x: sx, y: sy } = snap(x - 100, y - 60);
           const stickyEl: Omit<StickyNoteElement, 'id' | 'zIndex'> = {
             type: 'sticky-note',
-            x: x - 100,
-            y: y - 60,
+            x: sx,
+            y: sy,
             width: 200,
             height: 180,
             rotation: naturalRotation(2),
@@ -324,10 +338,11 @@ export const Whiteboard: React.FC = () => {
           // which would blur the textarea that autoFocus gives focus to during this handler.
           e.preventDefault();
           snapshot();
+          const { x: tx, y: ty } = snap(x - 120, y - 30);
           const tbEl: Omit<TextBoxElement, 'id' | 'zIndex'> = {
             type: 'text-box',
-            x: x - 120,
-            y: y - 30,
+            x: tx,
+            y: ty,
             width: 240,
             height: 60,
             rotation: 0,
@@ -404,7 +419,7 @@ export const Whiteboard: React.FC = () => {
       }
     },
     [
-      isSpaceDown, pan, toCanvas, tool, color, strokeWidth, font, fontSize,
+      isSpaceDown, pan, toCanvas, snap, tool, color, strokeWidth, font, fontSize,
       shapeType, stickyColor, roughness, opacity, snapshot, removeDrawingsAt,
       addElement, setSelectedId, setPendingConnection, pendingConnection,
       arrowStart, setArrowStart, setArrowPreview
@@ -420,7 +435,8 @@ export const Whiteboard: React.FC = () => {
         return;
       }
 
-      const { x, y } = toCanvas(e.clientX, e.clientY);
+      const { x: rawMx, y: rawMy } = toCanvas(e.clientX, e.clientY);
+      const { x, y } = snap(rawMx, rawMy);
 
       // Lasso selection tracking
       if (tool === 'select' && lassoStartRef.current) {
@@ -445,14 +461,15 @@ export const Whiteboard: React.FC = () => {
       }
 
       if (tool === 'shape' && shapeStart && shapePreview) {
-        const w = x - shapeStart.x;
-        const h = y - shapeStart.y;
+        const snappedEnd = snap(rawMx, rawMy);
+        const w = snappedEnd.x - shapeStart.x;
+        const h = snappedEnd.y - shapeStart.y;
         setShapePreview((prev) =>
           prev
             ? {
                 ...prev,
-                x: w < 0 ? x : shapeStart.x,
-                y: h < 0 ? y : shapeStart.y,
+                x: w < 0 ? snappedEnd.x : shapeStart.x,
+                y: h < 0 ? snappedEnd.y : shapeStart.y,
                 width: Math.abs(w),
                 height: Math.abs(h)
               }
@@ -468,10 +485,10 @@ export const Whiteboard: React.FC = () => {
 
       // Arrow preview – track cursor after first click
       if (tool === 'arrow' && arrowStart) {
-        setArrowPreview({ x, y });
+        setArrowPreview(snap(rawMx, rawMy));
       }
     },
-    [isPanning, toCanvas, tool, activeDrawing, shapeStart, shapePreview, pendingConnection, setPan, removeDrawingsAt, setPendingConnection, setLasso, arrowStart, setArrowPreview]
+    [isPanning, toCanvas, snap, tool, activeDrawing, shapeStart, shapePreview, pendingConnection, setPan, removeDrawingsAt, setPendingConnection, setLasso, arrowStart, setArrowPreview]
   );
 
   const handleMouseUp = useCallback(
@@ -592,7 +609,8 @@ export const Whiteboard: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
       dragOverRef.current = false;
-      const { x, y } = toCanvas(e.clientX, e.clientY);
+      const { x: rawDx, y: rawDy } = toCanvas(e.clientX, e.clientY);
+      const { x, y } = snap(rawDx, rawDy);
 
       const files = Array.from(e.dataTransfer.files).filter((f) =>
         f.type.startsWith('image/')
@@ -613,10 +631,11 @@ export const Whiteboard: React.FC = () => {
             const h = img.naturalHeight * scale;
 
             snapshot();
+            const pos = snap(x - w / 2, y - h / 2);
             const imgEl: Omit<ImageElement, 'id' | 'zIndex'> = {
               type: 'image',
-              x: x - w / 2,
-              y: y - h / 2,
+              x: pos.x,
+              y: pos.y,
               width: w,
               height: h,
               rotation: polaroidRotation(),
@@ -631,7 +650,7 @@ export const Whiteboard: React.FC = () => {
         reader.readAsDataURL(file);
       });
     },
-    [toCanvas, snapshot, addElement, setTool]
+    [toCanvas, snap, snapshot, addElement, setTool]
   );
 
   // ── Cursor style ────────────────────────────────────────────────────────────
@@ -701,6 +720,18 @@ export const Whiteboard: React.FC = () => {
             pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow') ? 'all' : 'none'
           }}
         >
+          {/* Grid */}
+          {gridEnabled && (
+            <>
+              <defs>
+                <pattern id="whiteboard-grid" x="0" y="0" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+                  <circle cx={gridSize / 2} cy={gridSize / 2} r={1} fill="rgba(150,140,200,0.25)" />
+                </pattern>
+              </defs>
+              <rect x={0} y={0} width={canvasWidth} height={canvasHeight} fill="url(#whiteboard-grid)" />
+            </>
+          )}
+
           {/* Completed drawings */}
           {drawings.map((el) => (
             <DrawingPath

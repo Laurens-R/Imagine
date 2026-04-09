@@ -1,4 +1,6 @@
 import React, { useRef } from 'react';
+import { useWhiteboardStore } from '../../../store/whiteboardStore';
+import { snapVal } from '../../../utils/snap';
 import styles from './ResizeHandles.module.scss';
 
 type HandleType = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
@@ -44,6 +46,9 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
   } | null>(null);
   const rotateStartRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
 
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
+
   const ROTATE_OFFSET = 28; // canvas units above top edge
 
   const getHandleStyle = (handle: HandleType): React.CSSProperties => {
@@ -85,6 +90,14 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
       if (handle.includes('e')) { nw = ew + dx; }
       if (handle.includes('n')) { ny = ey + dy; nh = eh - dy; }
       if (handle.includes('s')) { nh = eh + dy; }
+
+      // Snap moving edges to grid
+      if (gridEnabled) {
+        if (handle.includes('w')) { nx = snapVal(nx, gridSize); nw = ex + ew - nx; }
+        else if (handle.includes('e')) { nw = snapVal(nx + nw, gridSize) - nx; }
+        if (handle.includes('n')) { ny = snapVal(ny, gridSize); nh = ey + eh - ny; }
+        else if (handle.includes('s')) { nh = snapVal(ny + nh, gridSize) - ny; }
+      }
 
       // Clamp to minimums, pinning the opposite edge
       if (nw < minWidth) {

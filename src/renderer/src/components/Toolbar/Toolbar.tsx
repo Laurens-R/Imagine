@@ -64,6 +64,12 @@ const IconArrow = () => (
     <polyline points="9 5 19 5 19 15" />
   </svg>
 );
+const IconGrid = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+  </svg>
+);
+
 const IconUndo = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 7v6h6" />
@@ -145,6 +151,9 @@ export const Toolbar: React.FC = () => {
   const undoStack = useWhiteboardStore((s) => s.undoStack);
   const redoStack = useWhiteboardStore((s) => s.redoStack);
 
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
+
   const {
     setTool,
     setColor,
@@ -158,7 +167,9 @@ export const Toolbar: React.FC = () => {
     resetView,
     undo,
     redo,
-    clearAll
+    clearAll,
+    setGridEnabled,
+    setGridSize
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
@@ -383,6 +394,34 @@ export const Toolbar: React.FC = () => {
           >
             <IconRedo />
           </button>
+
+          <div className={styles.divider} />
+
+          {/* Grid toggle */}
+          <button
+            className={`${styles.actionBtn} ${gridEnabled ? styles.activeBtn : ''}`}
+            onClick={() => setGridEnabled(!gridEnabled)}
+            title={gridEnabled ? 'Snap to Grid: ON' : 'Snap to Grid: OFF'}
+          >
+            <IconGrid />
+          </button>
+
+          {/* Grid size (shown when grid is on) */}
+          {gridEnabled && (
+            <div className={styles.gridSizeControl}>
+              <input
+                type="range"
+                min={8}
+                max={80}
+                step={4}
+                value={gridSize}
+                onChange={(e) => setGridSize(Number(e.target.value))}
+                className={styles.gridSlider}
+                title={`Grid size: ${gridSize}px`}
+              />
+              <span className={styles.gridSizeLabel}>{gridSize}</span>
+            </div>
+          )}
 
           <div className={styles.divider} />
 

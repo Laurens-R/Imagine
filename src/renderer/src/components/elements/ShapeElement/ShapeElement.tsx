@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
 import { generateRoughPaths } from '../../../utils/roughShapes';
+import { snapVal } from '../../../utils/snap';
 import type { ShapeElement } from '../../../types';
 
 interface ShapeElProps {
@@ -25,6 +26,8 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
   const [isConnHovered, setIsConnHovered] = useState(false);
 
@@ -57,9 +60,11 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
 
       const onMove = (ev: MouseEvent) => {
         if (!dragStart.current) return;
+        const rawX = dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom;
+        const rawY = dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom;
         onUpdate({
-          x: dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
-          y: dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
+          x: gridEnabled ? snapVal(rawX, gridSize) : rawX,
+          y: gridEnabled ? snapVal(rawY, gridSize) : rawY
         });
       };
       const onUp = () => {
@@ -70,7 +75,7 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [tool, element.id, element.x, element.y, pendingConn, zoom, onSelect, onUpdate, onStartConnection, onCompleteConnection]
+    [tool, element.id, element.x, element.y, pendingConn, zoom, gridEnabled, gridSize, onSelect, onUpdate, onStartConnection, onCompleteConnection]
   );
 
   const transform = rotation !== 0
@@ -204,6 +209,9 @@ const SVGResizeHandles: React.FC<SVGResizeHandlesProps> = ({ el, zoom, pan, onUp
   } | null>(null);
   const rotateStartRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
 
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
+
   const getHandlePos = (handle: HandleType) => {
     const { x, y, width, height } = el;
     const map: Record<HandleType, [number, number]> = {
@@ -238,6 +246,14 @@ const SVGResizeHandles: React.FC<SVGResizeHandlesProps> = ({ el, zoom, pan, onUp
       if (handle.includes('e')) { nw = ew + dx; }
       if (handle.includes('n')) { ny = ey + dy; nh = eh - dy; }
       if (handle.includes('s')) { nh = eh + dy; }
+
+      // Snap moving edge to grid
+      if (gridEnabled) {
+        if (handle.includes('w')) { nx = snapVal(nx, gridSize); nw = ex + ew - nx; }
+        else if (handle.includes('e')) { nw = snapVal(nx + nw, gridSize) - nx; }
+        if (handle.includes('n')) { ny = snapVal(ny, gridSize); nh = ey + eh - ny; }
+        else if (handle.includes('s')) { nh = snapVal(ny + nh, gridSize) - ny; }
+      }
 
       const MIN = 20;
       if (nw < MIN) { if (handle.includes('w')) nx = ex + ew - MIN; nw = MIN; }

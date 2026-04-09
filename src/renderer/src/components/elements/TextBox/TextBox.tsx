@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
+import { snapVal } from '../../../utils/snap';
 import type { TextBoxElement } from '../../../types';
 import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './TextBox.module.scss';
@@ -28,6 +29,8 @@ export const TextBox: React.FC<TextBoxProps> = ({
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
   // Start in edit mode when the text box is freshly created (empty text)
   const [isEditing, setIsEditing] = useState(!element.text);
   const [isConnHovered, setIsConnHovered] = useState(false);
@@ -68,9 +71,11 @@ export const TextBox: React.FC<TextBoxProps> = ({
 
       const onMove = (ev: MouseEvent) => {
         if (!dragStart.current) return;
+        const rawX = dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom;
+        const rawY = dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom;
         onUpdate({
-          x: dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
-          y: dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
+          x: gridEnabled ? snapVal(rawX, gridSize) : rawX,
+          y: gridEnabled ? snapVal(rawY, gridSize) : rawY
         });
       };
       const onUp = () => {
@@ -81,7 +86,7 @@ export const TextBox: React.FC<TextBoxProps> = ({
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [tool, isEditing, element.id, element.x, element.y, pendingConn, zoom, onSelect, onUpdate, onStartConnection, onCompleteConnection]
+    [tool, isEditing, element.id, element.x, element.y, pendingConn, zoom, gridEnabled, gridSize, onSelect, onUpdate, onStartConnection, onCompleteConnection]
   );
 
   const handleDoubleClick = (e: React.MouseEvent) => {

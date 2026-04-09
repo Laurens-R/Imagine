@@ -391,4 +391,50 @@
       background: rgba($accent-danger, 0.3);
     }
   }
+
+  &.activeBtn {
+    background: $accent-primary;
+    color: #ffffff;
+
+    svg {
+      color: #ffffff;
+    }
+  }
+}
+
+// ── Grid size control ──────────────────────────────────────────────────────
+
+.gridSizeControl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gridSlider {
+  width: 64px;
+  height: 4px;
+  appearance: none;
+  background: $toolbar-border;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: $accent-primary;
+    cursor: pointer;
+  }
+}
+
+.gridSizeLabel {
+  color: $toolbar-text;
+  font-size: 10px;
+  font-family: $font-system;
+  min-width: 20px;
+  text-align: right;
+  flex-shrink: 0;
 }

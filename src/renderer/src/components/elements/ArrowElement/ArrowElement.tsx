@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
+import { snapVal } from '../../../utils/snap';
 import type { ArrowElement } from '../../../types';
 
 interface ArrowElProps {
@@ -12,6 +13,8 @@ interface ArrowElProps {
 
 export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onSelect, onUpdate }) => {
   const zoom = useWhiteboardStore((s) => s.zoom);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number; ex2: number; ey2: number } | null>(null);
   const [hovered, setHovered] = useState(false);
 
@@ -39,7 +42,17 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
       if (!dragStart.current) return;
       const ddx = (ev.clientX - dragStart.current.mx) / zoom;
       const ddy = (ev.clientY - dragStart.current.my) / zoom;
-      onUpdate({ x: dragStart.current.ex + ddx, y: dragStart.current.ey + ddy, x2: dragStart.current.ex2 + ddx, y2: dragStart.current.ey2 + ddy });
+      const rawX = dragStart.current.ex + ddx;
+      const rawY = dragStart.current.ey + ddy;
+      if (gridEnabled) {
+        const snappedX = snapVal(rawX, gridSize);
+        const snappedY = snapVal(rawY, gridSize);
+        const offX = dragStart.current.ex2 - dragStart.current.ex;
+        const offY = dragStart.current.ey2 - dragStart.current.ey;
+        onUpdate({ x: snappedX, y: snappedY, x2: snappedX + offX, y2: snappedY + offY });
+      } else {
+        onUpdate({ x: rawX, y: rawY, x2: dragStart.current.ex2 + ddx, y2: dragStart.current.ey2 + ddy });
+      }
     };
     const onUp = () => {
       dragStart.current = null;
@@ -101,10 +114,14 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
             onMouseDown={(e) => {
               e.stopPropagation();
               const start = { mx: e.clientX, my: e.clientY, ox: x, oy: y };
-              const onMove = (ev: MouseEvent) => onUpdate({
-                x: start.ox + (ev.clientX - start.mx) / zoom,
-                y: start.oy + (ev.clientY - start.my) / zoom
-              });
+              const onMove = (ev: MouseEvent) => {
+                const rawX = start.ox + (ev.clientX - start.mx) / zoom;
+                const rawY = start.oy + (ev.clientY - start.my) / zoom;
+                onUpdate({
+                  x: gridEnabled ? snapVal(rawX, gridSize) : rawX,
+                  y: gridEnabled ? snapVal(rawY, gridSize) : rawY
+                });
+              };
               const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
               window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
             }}
@@ -114,10 +131,14 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
             onMouseDown={(e) => {
               e.stopPropagation();
               const start = { mx: e.clientX, my: e.clientY, ox: x2, oy: y2 };
-              const onMove = (ev: MouseEvent) => onUpdate({
-                x2: start.ox + (ev.clientX - start.mx) / zoom,
-                y2: start.oy + (ev.clientY - start.my) / zoom
-              });
+              const onMove = (ev: MouseEvent) => {
+                const rawX2 = start.ox + (ev.clientX - start.mx) / zoom;
+                const rawY2 = start.oy + (ev.clientY - start.my) / zoom;
+                onUpdate({
+                  x2: gridEnabled ? snapVal(rawX2, gridSize) : rawX2,
+                  y2: gridEnabled ? snapVal(rawY2, gridSize) : rawY2
+                });
+              };
               const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
               window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
             }}

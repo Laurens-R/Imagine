@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useWhiteboardStore } from '../../../store/whiteboardStore';
+import { snapVal } from '../../../utils/snap';
 import type { StickyNoteElement } from '../../../types';
 import { ResizeHandles } from '../ResizeHandles/ResizeHandles';
 import styles from './StickyNote.module.scss';
@@ -28,6 +29,8 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
   const pendingConn = useWhiteboardStore((s) => s.pendingConnection);
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
   const [isEditing, setIsEditing] = useState(false);
   const [isConnHovered, setIsConnHovered] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
@@ -58,9 +61,11 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
 
       const onMove = (ev: MouseEvent) => {
         if (!dragStart.current) return;
+        const rawX = dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom;
+        const rawY = dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom;
         onUpdate({
-          x: dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
-          y: dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
+          x: gridEnabled ? snapVal(rawX, gridSize) : rawX,
+          y: gridEnabled ? snapVal(rawY, gridSize) : rawY
         });
       };
       const onUp = () => {
@@ -71,7 +76,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [tool, isEditing, element.id, element.x, element.y, pendingConn, zoom, onSelect, onUpdate, onStartConnection, onCompleteConnection]
+    [tool, isEditing, element.id, element.x, element.y, pendingConn, zoom, gridEnabled, gridSize, onSelect, onUpdate, onStartConnection, onCompleteConnection]
   );
 
   const handleDoubleClick = (e: React.MouseEvent) => {

@@ -58,6 +58,10 @@ interface WhiteboardState {
 
   // Persisted file path
   currentFile: string | null;
+
+  // Grid
+  gridEnabled: boolean;
+  gridSize: number;
 }
 
 interface WhiteboardActions {
@@ -108,6 +112,10 @@ interface WhiteboardActions {
   // File
   loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string) => void;
   setCurrentFile: (filePath: string | null) => void;
+
+  // Grid
+  setGridEnabled: (enabled: boolean) => void;
+  setGridSize: (size: number) => void;
 }
 
 type WhiteboardStore = WhiteboardState & WhiteboardActions;
@@ -142,6 +150,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     canvasWidth: CANVAS_WIDTH,
     canvasHeight: CANVAS_HEIGHT,
     currentFile: null,
+    gridEnabled: false,
+    gridSize: 20,
 
     // ── Tool Actions ───────────────────────────────────────────────────────
     setTool: (tool) =>
@@ -341,7 +351,10 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     setCurrentFile: (filePath) =>
       set((state) => {
         state.currentFile = filePath;
-      })
+      }),
+
+    setGridEnabled: (enabled) => set((state) => { state.gridEnabled = enabled; }),
+    setGridSize: (size) => set((state) => { state.gridSize = size; })
   }))
 );
 
