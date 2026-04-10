@@ -10,6 +10,7 @@ import { renderToCanvas, computeContentBounds } from '../../utils/export';
 import type { ExportFormat } from '../../utils/export';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { ExportDialog } from '../ExportDialog/ExportDialog';
+import { PropertiesPanel } from '../PropertiesPanel/PropertiesPanel';
 import { StickyNote } from '../elements/StickyNote/StickyNote';
 import { TextBox } from '../elements/TextBox/TextBox';
 import { ImageEl } from '../elements/ImageElement/ImageElement';
@@ -1016,6 +1017,9 @@ export const Whiteboard: React.FC<{
           }}
         />
       )}
+
+      {/* ── Properties panel ──────────────────────────────────────────── */}
+      <PropertiesPanel />
 
       {/* ── Export dialog ─────────────────────────────────────────────────── */}
       {showExportDialog && (() => {
