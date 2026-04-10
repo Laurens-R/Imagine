@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useWhiteboardStore, selectSortedElements } from '../../store/whiteboardStore';
 import { generateDrawingPath, generateDotPath } from '../../utils/drawing';
@@ -6,7 +6,10 @@ import { generatePreviewRoughPaths, idToSeed } from '../../utils/roughShapes';
 import { screenToCanvas, naturalRotation, polaroidRotation } from '../../utils/helpers';
 import { getElementCenter, getStringPath } from '../../utils/helpers';
 import { snapVal } from '../../utils/snap';
+import { renderToCanvas, computeContentBounds } from '../../utils/export';
+import type { ExportFormat } from '../../utils/export';
 import { Toolbar } from '../Toolbar/Toolbar';
+import { ExportDialog } from '../ExportDialog/ExportDialog';
 import { StickyNote } from '../elements/StickyNote/StickyNote';
 import { TextBox } from '../elements/TextBox/TextBox';
 import { ImageEl } from '../elements/ImageElement/ImageElement';
@@ -47,7 +50,10 @@ function getElementBounds(el: WhiteboardElement): { x: number; y: number; w: num
   return { x: s.x, y: s.y, w: s.width, h: s.height };
 }
 
-export const Whiteboard: React.FC = () => {
+export const Whiteboard: React.FC<{
+  showExportDialog?: boolean;
+  onCloseExportDialog?: () => void;
+}> = ({ showExportDialog = false, onCloseExportDialog }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -118,6 +124,9 @@ export const Whiteboard: React.FC = () => {
   const [arrowStart, setArrowStart] = useState<{ x: number; y: number } | null>(null);
   const [arrowPreview, setArrowPreview] = useState<{ x: number; y: number } | null>(null);
 
+  // ── Export state ───────────────────────────────────────────────────────────
+  const [isExporting, setIsExporting] = useState(false);
+
   // ── Coordinate helpers ─────────────────────────────────────────────────────
   const toCanvas = useCallback(
     (clientX: number, clientY: number) => {
@@ -134,6 +143,26 @@ export const Whiteboard: React.FC = () => {
       y: gridEnabled ? snapVal(y, gridSize) : y
     }),
     [gridEnabled, gridSize]
+  );
+
+  // ── Export handler ─────────────────────────────────────────────────────────
+  const handleExport = useCallback(
+    async (format: ExportFormat, scale: number) => {
+      if (!svgRef.current) return;
+      setIsExporting(true);
+      try {
+        const canvas = await renderToCanvas(elements, svgRef.current, gridEnabled, gridSize, scale);
+        const quality = format === 'jpeg' ? 0.92 : undefined;
+        const dataUrl = canvas.toDataURL(`image/${format}`, quality);
+        await window.whiteboardApi.exportImage(dataUrl, format);
+      } catch (err) {
+        console.error('Export failed:', err);
+      } finally {
+        setIsExporting(false);
+        onCloseExportDialog?.();
+      }
+    },
+    [elements, gridEnabled, gridSize]
   );
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
@@ -986,7 +1015,22 @@ export const Whiteboard: React.FC = () => {
             height: lassoScreenRect.height
           }}
         />
-      )}    </div>
+      )}
+
+      {/* ── Export dialog ─────────────────────────────────────────────────── */}
+      {showExportDialog && (() => {
+        const bounds = computeContentBounds(elements);
+        return (
+          <ExportDialog
+            contentWidth={Math.ceil(bounds.w)}
+            contentHeight={Math.ceil(bounds.h)}
+            onExport={handleExport}
+            onClose={() => onCloseExportDialog?.()}
+            isExporting={isExporting}
+          />
+        );
+      })()}
+    </div>
   );
 };
 

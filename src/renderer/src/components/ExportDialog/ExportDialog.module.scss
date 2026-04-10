@@ -1,0 +1,186 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: #1e1e36;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  padding: 24px;
+  min-width: 340px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $toolbar-text;
+  margin: 0;
+  font-family: $font-system;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $toolbar-icon;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $toolbar-text;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+.section {
+  margin-bottom: 18px;
+}
+
+.label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: $toolbar-icon;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+  font-family: $font-system;
+}
+
+// ── Button group ──────────────────────────────────────────────────────────────
+
+.buttonGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.optBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-icon;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: $font-system;
+  transition: border-color $transition-fast, color $transition-fast, background $transition-fast;
+
+  &:hover {
+    border-color: rgba(124, 106, 255, 0.55);
+    color: $toolbar-text;
+    background: rgba(124, 106, 255, 0.08);
+  }
+}
+
+.optBtnActive {
+  background: rgba(124, 106, 255, 0.18);
+  border-color: $accent-primary;
+  color: $toolbar-text;
+}
+
+.scaleMain {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.scaleDesc {
+  font-size: 10px;
+  opacity: 0.55;
+}
+
+.resolution {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: $toolbar-icon;
+  text-align: center;
+  font-family: $font-system;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid $toolbar-border;
+}
+
+.cancelBtn {
+  padding: 8px 18px;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  background: transparent;
+  color: $toolbar-icon;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: $font-system;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $toolbar-text;
+    color: $toolbar-text;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.exportBtn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: $border-radius-md;
+  background: $accent-primary;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: $font-system;
+  transition: background $transition-fast, opacity $transition-fast;
+
+  &:hover {
+    background: rgba(124, 106, 255, 0.82);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

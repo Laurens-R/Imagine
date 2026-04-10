@@ -76,6 +76,20 @@ function createWindow(): void {
     const data = await readFile(filePath, 'utf8');
     return { filePath, data };
   });
+
+  ipcMain.handle('board:exportImage', async (_e, dataUrl: string, format: string) => {
+    const ext = format === 'jpeg' ? 'jpg' : 'png';
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Whiteboard',
+      defaultPath: `whiteboard.${ext}`,
+      filters: [{ name: format.toUpperCase(), extensions: [ext] }]
+    });
+    if (result.canceled || !result.filePath) return { canceled: true };
+    const base64 = dataUrl.split(',')[1];
+    if (!base64) return { canceled: true };
+    await writeFile(result.filePath, Buffer.from(base64, 'base64'));
+    return { filePath: result.filePath };
+  });
 }
 
 app.whenReady().then(() => {

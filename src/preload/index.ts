@@ -8,6 +8,8 @@ const whiteboardApi = {
   saveBoard: (data: string, filePath?: string) =>
     ipcRenderer.invoke('board:save', data, filePath),
   openBoard: () => ipcRenderer.invoke('board:open'),
+  exportImage: (dataUrl: string, format: string) =>
+    ipcRenderer.invoke('board:exportImage', dataUrl, format),
 };
 
 if (process.contextIsolated) {

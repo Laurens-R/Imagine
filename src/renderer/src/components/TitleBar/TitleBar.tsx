@@ -68,7 +68,7 @@ const FileMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
 
 // ── Main TitleBar ────────────────────────────────────────────────────────────
 
-export const TitleBar: React.FC = () => {
+export const TitleBar: React.FC<{ onExport?: () => void }> = ({ onExport }) => {
   const currentFile = useWhiteboardStore((s) => s.currentFile);
   const elements = useWhiteboardStore((s) => s.elements);
   const connections = useWhiteboardStore((s) => s.connections);
@@ -127,6 +127,8 @@ export const TitleBar: React.FC = () => {
     { divider: true, label: '', action: () => {} },
     { label: 'Save', shortcut: 'Ctrl+S', action: handleSave, disabled: saving },
     { label: 'Save As…', action: handleSaveAs, disabled: saving },
+    { divider: true, label: '', action: () => {} },
+    { label: 'Export as Image…', action: () => onExport?.(), disabled: !onExport },
   ];
 
   const fileName = currentFile
