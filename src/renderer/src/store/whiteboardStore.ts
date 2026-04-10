@@ -131,6 +131,9 @@ interface WhiteboardActions {
   // Grouping
   groupSelected: () => void;
   ungroupSelected: () => void;
+
+  // Rotation
+  resetRotation: () => void;
 }
 
 type WhiteboardStore = WhiteboardState & WhiteboardActions;
@@ -583,6 +586,24 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         const nonGroupIds = selectedIds.filter((id) => !toDissolve.some((g) => g.id === id));
         state.selectedIds = [...allChildIds, ...nonGroupIds];
         state.selectedId = null;
+      });
+    },
+
+    resetRotation: () => {
+      const { selectedId, selectedIds, groups, elements } = get();
+      const ids: string[] = [];
+      if (selectedId) ids.push(selectedId);
+      for (const sid of selectedIds) {
+        const grp = groups.find((g) => g.id === sid);
+        if (grp) ids.push(...grp.childIds);
+        else if (elements.some((el) => el.id === sid)) ids.push(sid);
+      }
+      if (ids.length === 0) return;
+      get().snapshot();
+      set((state) => {
+        for (const el of state.elements) {
+          if (ids.includes(el.id)) el.rotation = 0;
+        }
       });
     },
   }))

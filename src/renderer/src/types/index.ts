@@ -102,6 +102,8 @@ export interface ImageElement extends SizedElement {
   type: 'image';
   dataUrl: string;
   caption: string;
+  /** When false the polaroid frame, shadow and caption are hidden. Defaults to true. */
+  polaroidFrame?: boolean;
 }
 
 /** Two-point arrow (or straight line when showArrowhead is false) */

@@ -77,14 +77,14 @@ export const ImageEl: React.FC<ImageElProps> = ({
   const showConnPin = pendingConn != null && pendingConn.sourceId !== element.id;
   const showConnectionMode = tool === 'connection' && !isPendingSource && pendingConn == null;
 
-  // Polaroid: white padding + caption area below image
-  const polaroidPad = 12;
+  const showFrame = element.polaroidFrame !== false;
+  const polaroidPad = showFrame ? 12 : 0;
   const captionH = 38;
 
   return (
     <div
       className={[
-        styles.polaroid,
+        showFrame ? styles.polaroid : styles.plainImage,
         isSelected ? styles.selected : '',
         showConnPin ? styles.connectable : '',
         showConnectionMode ? styles.connectionSource : '',
@@ -114,24 +114,26 @@ export const ImageEl: React.FC<ImageElProps> = ({
         />
       </div>
 
-      {/* Caption */}
-      <div className={styles.captionArea} style={{ height: captionH }}>
-        {editingCaption ? (
-          <input
-            autoFocus
-            className={styles.captionInput}
-            value={element.caption}
-            onChange={(e) => onUpdate({ caption: e.target.value })}
-            onBlur={() => setEditingCaption(false)}
-            onKeyDown={(e) => e.key === 'Enter' && setEditingCaption(false)}
-            onMouseDown={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span className={styles.caption} onDoubleClick={(e) => { e.stopPropagation(); setEditingCaption(true); }}>
-            {element.caption || 'caption'}
-          </span>
-        )}
-      </div>
+      {/* Caption – only shown with polaroid frame */}
+      {showFrame && (
+        <div className={styles.captionArea} style={{ height: captionH }}>
+          {editingCaption ? (
+            <input
+              autoFocus
+              className={styles.captionInput}
+              value={element.caption}
+              onChange={(e) => onUpdate({ caption: e.target.value })}
+              onBlur={() => setEditingCaption(false)}
+              onKeyDown={(e) => e.key === 'Enter' && setEditingCaption(false)}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className={styles.caption} onDoubleClick={(e) => { e.stopPropagation(); setEditingCaption(true); }}>
+              {element.caption || 'caption'}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Resize handles – inset to the photo boundary */}
       {isSelected && tool === 'select' && (
@@ -152,6 +154,16 @@ export const ImageEl: React.FC<ImageElProps> = ({
         <div className={styles.controls}>
           <button className={styles.deleteBtn} onMouseDown={(e) => { e.stopPropagation(); onDelete(); }} title="Delete">×</button>
           <button className={styles.connectBtn} onMouseDown={(e) => { e.stopPropagation(); onStartConnection(); }} title="Connect">⊕</button>
+          <button
+            className={styles.frameBtn}
+            onMouseDown={(e) => { e.stopPropagation(); onUpdate({ polaroidFrame: !showFrame }); }}
+            title={showFrame ? 'Hide frame' : 'Show frame'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={12} height={12}>
+              <rect x="2" y="2" width="20" height="20" rx="2" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+          </button>
         </div>
       )}
 

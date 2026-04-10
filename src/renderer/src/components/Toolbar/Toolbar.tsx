@@ -171,6 +171,13 @@ const IconUngroup = () => (
     <line x1="16" y1="19" x2="19" y2="19" />
   </svg>
 );
+const IconResetRotation = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 10a6 6 0 1 0 1.5-3.9" />
+    <polyline points="4 5.5 4 10 8.5 10" />
+    <line x1="10" y1="10" x2="10" y2="6" strokeWidth={2} />
+  </svg>
+);
 
 // ── Shape icons ─────────────────────────────────────────────────────────────
 
@@ -231,6 +238,7 @@ export const Toolbar: React.FC = () => {
   const zoom = useWhiteboardStore((s) => s.zoom);
   const undoStack = useWhiteboardStore((s) => s.undoStack);
   const redoStack = useWhiteboardStore((s) => s.redoStack);
+  const selectedId = useWhiteboardStore((s) => s.selectedId);
   const selectedIds = useWhiteboardStore((s) => s.selectedIds);
   const groups = useWhiteboardStore((s) => s.groups);
 
@@ -257,6 +265,7 @@ export const Toolbar: React.FC = () => {
     distributeSelected,
     groupSelected,
     ungroupSelected,
+    resetRotation,
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
@@ -450,29 +459,36 @@ export const Toolbar: React.FC = () => {
             </>
           )}
 
-          {/* Alignment: shown when selection tool + 2+ elements selected, or a group is selected */}
+          {/* Alignment / rotation: shown when one or more elements are selected */}
           {tool === 'select' && (() => {
             const hasGroup = selectedIds.some((id) => groups.some((g) => g.id === id));
-            if (!hasGroup && selectedIds.length < 2) return null;
+            const hasAnySelection = selectedId !== null || selectedIds.length >= 1;
+            if (!hasAnySelection) return null;
+            const hasMulti = hasGroup || selectedIds.length >= 2;
             const canGroup = !hasGroup && selectedIds.length >= 2;
             const canUngroup = hasGroup;
             return (
               <div className={styles.alignGroup}>
+                {hasMulti && (
+                  <>
+                    <div className={styles.alignSubGroup}>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('left')}     title="Align left"><IconAlignLeft /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('center-h')} title="Align center (horizontal)"><IconAlignCenterH /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('right')}    title="Align right"><IconAlignRight /></button>
+                    </div>
+                    <div className={styles.alignSubGroup}>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('top')}      title="Align top"><IconAlignTop /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('center-v')} title="Align middle (vertical)"><IconAlignCenterV /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('bottom')}   title="Align bottom"><IconAlignBottom /></button>
+                    </div>
+                    <div className={styles.alignSubGroup}>
+                      <button className={styles.alignBtn} onClick={() => distributeSelected('horizontal')} title="Distribute horizontally" disabled={selectedIds.length < 3}><IconDistributeH /></button>
+                      <button className={styles.alignBtn} onClick={() => distributeSelected('vertical')}   title="Distribute vertically"   disabled={selectedIds.length < 3}><IconDistributeV /></button>
+                    </div>
+                  </>
+                )}
                 <div className={styles.alignSubGroup}>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('left')}     title="Align left"><IconAlignLeft /></button>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('center-h')} title="Align center (horizontal)"><IconAlignCenterH /></button>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('right')}    title="Align right"><IconAlignRight /></button>
-                </div>
-                <div className={styles.alignSubGroup}>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('top')}      title="Align top"><IconAlignTop /></button>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('center-v')} title="Align middle (vertical)"><IconAlignCenterV /></button>
-                  <button className={styles.alignBtn} onClick={() => alignSelected('bottom')}   title="Align bottom"><IconAlignBottom /></button>
-                </div>
-                <div className={styles.alignSubGroup}>
-                  <button className={styles.alignBtn} onClick={() => distributeSelected('horizontal')} title="Distribute horizontally" disabled={selectedIds.length < 3}><IconDistributeH /></button>
-                  <button className={styles.alignBtn} onClick={() => distributeSelected('vertical')}   title="Distribute vertically"   disabled={selectedIds.length < 3}><IconDistributeV /></button>
-                </div>
-                <div className={styles.alignSubGroup}>
+                  <button className={styles.alignBtn} onClick={resetRotation} title="Reset rotation"><IconResetRotation /></button>
                   {canGroup   && <button className={styles.alignBtn} onClick={groupSelected}   title="Group (Ctrl+G)"><IconGroup /></button>}
                   {canUngroup && <button className={styles.alignBtn} onClick={ungroupSelected} title="Ungroup"><IconUngroup /></button>}
                 </div>

@@ -100,7 +100,8 @@
 }
 
 .deleteBtn,
-.connectBtn {
+.connectBtn,
+.frameBtn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,6 +130,51 @@
   background: #27ae60;
   color: white;
   font-size: 13px;
+}
+
+.frameBtn {
+  background: #7c6aff;
+  color: white;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Plain image (no polaroid frame) ──────────────────────────────────────────
+
+.plainImage {
+  position: absolute;
+  display: inline-flex;
+  flex-direction: column;
+  user-select: none;
+  border-radius: 2px;
+  transition: box-shadow $transition-fast;
+
+  &.selected {
+    box-shadow: 0 0 0 3px $selection-color;
+  }
+
+  &.connectable {
+    &:hover {
+      box-shadow: 0 0 0 3px #e74c3c, 0 0 16px rgba(231, 76, 60, 0.45);
+    }
+  }
+
+  &.connectionSource {
+    &:hover {
+      box-shadow: 0 0 0 2px #27ae60, 0 0 12px rgba(39, 174, 96, 0.35);
+    }
+  }
+
+  &.pendingSource {
+    box-shadow: 0 0 0 3px #27ae60, 0 0 14px rgba(39, 174, 96, 0.45);
+  }
+
+  &.connTarget {
+    box-shadow: 0 0 0 3px #e74c3c, 0 0 22px rgba(231, 76, 60, 0.65);
+    transition: box-shadow 0.1s ease;
+  }
 }
 
 .connPin {
