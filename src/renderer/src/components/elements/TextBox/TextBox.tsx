@@ -167,7 +167,8 @@ export const TextBox: React.FC<TextBoxProps> = ({
             fontSize: element.fontSize,
             color: element.color,
             fontWeight: element.bold ? 'bold' : 'normal',
-            fontStyle: element.italic ? 'italic' : 'normal'
+            fontStyle: element.italic ? 'italic' : 'normal',
+            textAlign: element.textAlign ?? 'left'
           }}
           onMouseDown={(e) => e.stopPropagation()}
         />
@@ -179,7 +180,8 @@ export const TextBox: React.FC<TextBoxProps> = ({
             fontSize: element.fontSize,
             color: element.color,
             fontWeight: element.bold ? 'bold' : 'normal',
-            fontStyle: element.italic ? 'italic' : 'normal'
+            fontStyle: element.italic ? 'italic' : 'normal',
+            textAlign: element.textAlign ?? 'left'
           }}
         >
           {element.text || <span className={styles.placeholder}>Double-click to edit</span>}

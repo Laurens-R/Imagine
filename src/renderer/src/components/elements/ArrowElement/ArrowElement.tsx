@@ -96,7 +96,8 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
         strokeLinecap="round"
       />
 
-      {/* Arrowhead */}
+      {/* Arrowhead – only rendered for arrow elements (showArrowhead !== false) */}
+      {(element.showArrowhead ?? true) && (
       <polyline
         points={`${p1x},${p1y} ${x2},${y2} ${p2x},${p2y}`}
         stroke={color}
@@ -105,6 +106,7 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
         strokeLinejoin="round"
         fill="none"
       />
+      )}
 
       {/* Endpoint handles when selected */}
       {isSelected && (

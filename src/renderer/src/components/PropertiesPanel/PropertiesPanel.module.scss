@@ -295,3 +295,51 @@
     border-color: rgba(255, 255, 255, 0.18);
   }
 }
+
+// ── Dimension inputs ──────────────────────────────────────────────────────────
+
+.dimensionRow {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.dimensionField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dimensionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: $font-system;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.dimensionInput {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-family: $font-system;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.1s;
+
+  /* hide browser arrows */
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  &:focus { border-color: $accent-primary; }
+}

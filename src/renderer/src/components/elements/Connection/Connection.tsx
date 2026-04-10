@@ -7,20 +7,37 @@ interface ConnectionProps {
   sourceCenter: Point;
   targetCenter: Point;
   isSelected: boolean;
+  onClick?: () => void;
 }
 
 export const Connection: React.FC<ConnectionProps> = ({
   connection,
   sourceCenter,
   targetCenter,
-  isSelected
+  isSelected,
+  onClick
 }) => {
   const { d, midX, midY } = getStringPath(sourceCenter, targetCenter);
   const pinColor = connection.color;
   const pinShadow = 'rgba(0,0,0,0.4)';
 
   return (
-    <g style={{ pointerEvents: 'all', cursor: 'pointer' }}>
+    <g style={{ pointerEvents: 'all', cursor: 'pointer' }} onClick={onClick}>
+      {/* Wide invisible hit area for easier clicking */}
+      <path d={d} fill="none" stroke="transparent" strokeWidth={16} />
+
+      {/* Selection glow */}
+      {isSelected && (
+        <path
+          d={d}
+          fill="none"
+          stroke="#7c6aff"
+          strokeWidth={6}
+          strokeLinecap="round"
+          opacity={0.35}
+        />
+      )}
+
       {/* String shadow for depth */}
       <path
         d={d}

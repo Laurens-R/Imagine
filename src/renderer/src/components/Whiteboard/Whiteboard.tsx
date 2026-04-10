@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useWhiteboardStore, selectSortedElements } from '../../store/whiteboardStore';
 import { generateDrawingPath, generateDotPath } from '../../utils/drawing';
@@ -11,6 +11,8 @@ import type { ExportFormat } from '../../utils/export';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { ExportDialog } from '../ExportDialog/ExportDialog';
 import { PropertiesPanel } from '../PropertiesPanel/PropertiesPanel';
+import { ContextMenu } from '../ContextMenu/ContextMenu';
+import type { ContextMenuEntry } from '../ContextMenu/ContextMenu';
 import { StickyNote } from '../elements/StickyNote/StickyNote';
 import { TextBox } from '../elements/TextBox/TextBox';
 import { ImageEl } from '../elements/ImageElement/ImageElement';
@@ -26,11 +28,25 @@ import type {
   TextBoxElement,
   ShapeElement,
   ImageElement,
-  ArrowElement
+  ArrowElement,
+  ElementGroup,
 } from '../../types';
 import styles from './Whiteboard.module.scss';
 
 const ERASE_RADIUS = 20;
+
+/** Module-level clipboard for cut/copy/paste (survives re-renders) */
+let _clipboard: WhiteboardElement[] = [];
+
+/** Promote element IDs to their parent group ID where applicable */
+function promoteToTopLevel(ids: string[], groups: ElementGroup[]): string[] {
+  const result = new Set<string>();
+  for (const id of ids) {
+    const grp = groups.find((g) => g.childIds.includes(id));
+    result.add(grp ? grp.id : id);
+  }
+  return [...result];
+}
 
 /** Returns axis-aligned bounding box for any element (ignores rotation for simplicity) */
 function getElementBounds(el: WhiteboardElement): { x: number; y: number; w: number; h: number } {
@@ -63,6 +79,7 @@ export const Whiteboard: React.FC<{
   const connections = useWhiteboardStore((s) => s.connections);
   const selectedId = useWhiteboardStore((s) => s.selectedId);
   const selectedIds = useWhiteboardStore((s) => s.selectedIds);
+  const selectedConnectionId = useWhiteboardStore((s) => s.selectedConnectionId);
   const tool = useWhiteboardStore((s) => s.tool);
   const color = useWhiteboardStore((s) => s.color);
   const strokeWidth = useWhiteboardStore((s) => s.strokeWidth);
@@ -79,6 +96,7 @@ export const Whiteboard: React.FC<{
   const canvasHeight = useWhiteboardStore((s) => s.canvasHeight);
   const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
   const gridSize = useWhiteboardStore((s) => s.gridSize);
+  const groups = useWhiteboardStore((s) => s.groups);
 
   const {
     addElement,
@@ -87,17 +105,21 @@ export const Whiteboard: React.FC<{
     updateElement,
     setSelectedId,
     setSelectedIds,
+    setSelectedConnectionId,
     setTool,
     setZoom,
     setPan,
     setPendingConnection,
     addConnection,
+    removeConnection,
     undo,
     redo,
     snapshot,
     loadBoard,
     setCurrentFile,
-    clearAll
+    clearAll,
+    groupSelected,
+    ungroupSelected,
   } = useWhiteboardStore();
 
   const currentFile = useWhiteboardStore((s) => s.currentFile);
@@ -117,6 +139,12 @@ export const Whiteboard: React.FC<{
   const lassoRef = useRef<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const [lasso, setLasso] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
 
+  // Multi-selection group drag
+  const multiDragRef = useRef<{
+    mx: number; my: number;
+    origins: { id: string; x: number; y: number; x2?: number; y2?: number }[];
+  } | null>(null);
+
   // Image file input
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagePos = useRef<{ x: number; y: number } | null>(null);
@@ -124,6 +152,9 @@ export const Whiteboard: React.FC<{
   // Arrow tool – first click sets start, second click commits
   const [arrowStart, setArrowStart] = useState<{ x: number; y: number } | null>(null);
   const [arrowPreview, setArrowPreview] = useState<{ x: number; y: number } | null>(null);
+
+  // ── Context menu ───────────────────────────────────────────────────────────
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; canvasX: number; canvasY: number } | null>(null);
 
   // ── Export state ───────────────────────────────────────────────────────────
   const [isExporting, setIsExporting] = useState(false);
@@ -166,6 +197,76 @@ export const Whiteboard: React.FC<{
     [elements, gridEnabled, gridSize]
   );
 
+  // ── Cut / Copy / Paste helpers ─────────────────────────────────────────────
+  const getSelectedElements = useCallback((): WhiteboardElement[] => {
+    const { selectedId: sid, selectedIds: sids, groups: grps } = useWhiteboardStore.getState();
+    const ids = sids.length > 0 ? sids : sid ? [sid] : [];
+    const physicalIds = new Set<string>();
+    for (const id of ids) {
+      const grp = grps.find((g) => g.id === id);
+      if (grp) grp.childIds.forEach((cid) => physicalIds.add(cid));
+      else physicalIds.add(id);
+    }
+    return elements.filter((el) => physicalIds.has(el.id));
+  }, [elements]);
+
+  // Selects an element or its parent group if grouped
+  const handleElementClick = useCallback(
+    (elementId: string) => {
+      if (tool !== 'select') return;
+      const grp = groups.find((g) => g.childIds.includes(elementId));
+      if (grp) {
+        setSelectedIds([grp.id]);
+      } else {
+        setSelectedId(elementId);
+      }
+    },
+    [tool, groups, setSelectedId, setSelectedIds]
+  );
+
+  const handleCopy = useCallback((cut = false) => {
+    const sel = getSelectedElements();
+    if (sel.length === 0) return;
+    _clipboard = sel.map((el) => ({ ...el }));
+    if (cut) {
+      snapshot();
+      sel.forEach((el) => removeElement(el.id));
+    }
+  }, [getSelectedElements, snapshot, removeElement]);
+
+  const handlePaste = useCallback((atCanvasX?: number, atCanvasY?: number) => {
+    if (_clipboard.length === 0) return;
+    snapshot();
+    // Compute bounding box of clipboard items to center paste at cursor (or offset)
+    const xs = _clipboard.map((el) => el.x);
+    const ys = _clipboard.map((el) => el.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const OFFSET = 20;
+    const newIds: string[] = [];
+    _clipboard.forEach((el) => {
+      const dx = atCanvasX != null ? (atCanvasX - minX) : OFFSET;
+      const dy = atCanvasY != null ? (atCanvasY - minY) : OFFSET;
+      const pasted = { ...el, x: el.x + dx, y: el.y + dy };
+      const id = addElement(pasted as Omit<WhiteboardElement, 'id' | 'zIndex'>);
+      newIds.push(id);
+    });
+    if (newIds.length === 1) setSelectedId(newIds[0]);
+    else setSelectedIds(newIds);
+    // Shift clipboard so repeated pastes stack visually
+    if (atCanvasX == null) {
+      _clipboard = _clipboard.map((el) => ({ ...el, x: el.x + OFFSET, y: el.y + OFFSET }));
+    }
+  }, [snapshot, addElement, setSelectedId, setSelectedIds]);
+
+  // ── Right-click context menu ───────────────────────────────────────────────
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { x: cx, y: cy } = toCanvas(e.clientX, e.clientY);
+    setContextMenu({ x: e.clientX, y: e.clientY, canvasX: cx, canvasY: cy });
+  }, [toCanvas]);
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -184,10 +285,31 @@ export const Whiteboard: React.FC<{
         e.preventDefault();
         redo();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          handleCopy(false);
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          handleCopy(true);
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          handlePaste();
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
         e.preventDefault();
-        const { elements: els, connections: conns, currentFile: cf } = useWhiteboardStore.getState();
-        const data = JSON.stringify({ elements: els, connections: conns }, null, 2);
+        const { elements: els, connections: conns, groups: grps, currentFile: cf } = useWhiteboardStore.getState();
+        const data = JSON.stringify({ elements: els, connections: conns, groups: grps }, null, 2);
         window.whiteboardApi.saveBoard(data, cf ?? undefined).then((r) => {
           if (!r.canceled && r.filePath) setCurrentFile(r.filePath);
         });
@@ -198,7 +320,7 @@ export const Whiteboard: React.FC<{
           if (!r.canceled && r.data && r.filePath) {
             try {
               const parsed = JSON.parse(r.data);
-              loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath);
+              loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath, parsed.groups ?? []);
             } catch { /* ignore */ }
           }
         });
@@ -213,24 +335,53 @@ export const Whiteboard: React.FC<{
         clearAll();
         setCurrentFile(null);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        const state = useWhiteboardStore.getState();
+        const sids = state.selectedIds;
+        const hasGroup = sids.some((id) => state.groups.some((g) => g.id === id));
+        if (hasGroup) ungroupSelected();
+        else groupSelected();
+      }
       if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
         const active = document.activeElement;
         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
           setTool('arrow');
         }
       }
+      if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('line');
+        }
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+        const { selectedConnectionId: connId } = useWhiteboardStore.getState();
+        if (connId) {
+          snapshot();
+          removeConnection(connId);
+          setSelectedConnectionId(null);
+          return;
+        }
         const toDelete = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
         if (toDelete.length > 0) {
           snapshot();
-          toDelete.forEach((id) => removeElement(id));
+          const { groups: currentGroups } = useWhiteboardStore.getState();
+          const physicalIds = new Set<string>();
+          for (const id of toDelete) {
+            const grp = currentGroups.find((g) => g.id === id);
+            if (grp) grp.childIds.forEach((cid) => physicalIds.add(cid));
+            else physicalIds.add(id);
+          }
+          physicalIds.forEach((id) => removeElement(id));
         }
       }
       if (e.key === 'Escape') {
         setSelectedId(null);
         setSelectedIds([]);
+        setSelectedConnectionId(null);
         setPendingConnection(null);
         setShapePreview(null);
         setShapeStart(null);
@@ -253,7 +404,7 @@ export const Whiteboard: React.FC<{
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [selectedId, selectedIds, removeElement, setSelectedId, setSelectedIds, setPendingConnection, undo, redo, snapshot, loadBoard, setCurrentFile, clearAll]);
+  }, [selectedId, selectedIds, removeElement, removeConnection, setSelectedId, setSelectedIds, setSelectedConnectionId, setPendingConnection, undo, redo, snapshot, loadBoard, setCurrentFile, clearAll, handleCopy, handlePaste, groupSelected, ungroupSelected]);
 
   // ── Prevent Electron from navigating on file drag-drop ────────────────────
   useEffect(() => {
@@ -395,13 +546,14 @@ export const Whiteboard: React.FC<{
           break;
         }
 
-        case 'arrow': {
+        case 'arrow':
+        case 'line': {
           if (!arrowStart) {
             // First click – set start point
             setArrowStart({ x, y });
             setArrowPreview({ x, y });
           } else {
-            // Second click – commit the arrow
+            // Second click – commit
             snapshot();
             const arrowEl: Omit<ArrowElement, 'id' | 'zIndex'> = {
               type: 'arrow',
@@ -411,7 +563,8 @@ export const Whiteboard: React.FC<{
               y2: y,
               rotation: 0,
               color,
-              strokeWidth
+              strokeWidth,
+              showArrowhead: tool === 'arrow',
             };
             addElement(arrowEl);
             setArrowStart(null);
@@ -533,10 +686,11 @@ export const Whiteboard: React.FC<{
           const maxY = Math.max(rect.startY, rect.currentY);
           const hit = elements.filter((el) => {
             const b = getElementBounds(el);
-            return b.x < maxX && b.x + b.w > minX && b.y < maxY && b.y + b.h > minY;
+            return b.x >= minX && b.x + b.w <= maxX && b.y >= minY && b.y + b.h <= maxY;
           }).map((el) => el.id);
-          if (hit.length > 0) {
-            setSelectedIds(hit);
+          const promoted = promoteToTopLevel(hit, groups);
+          if (promoted.length > 0) {
+            setSelectedIds(promoted);
           } else {
             setSelectedId(null);
           }
@@ -696,6 +850,7 @@ export const Whiteboard: React.FC<{
       case 'connection': return 'crosshair';
       case 'image': return 'copy';
       case 'arrow': return arrowStart ? 'crosshair' : 'crosshair';
+      case 'line': return 'crosshair';
       default: return 'default';
     }
   };
@@ -718,6 +873,44 @@ export const Whiteboard: React.FC<{
     el.type === 'sticky-note' || el.type === 'text-box' || el.type === 'image'
   );
 
+  // Effective set of element IDs considered "selected" (includes children of selected groups)
+  const selectedElementIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const id of selectedIds) {
+      const grp = groups.find((g) => g.id === id);
+      if (grp) grp.childIds.forEach((cid) => set.add(cid));
+      else set.add(id);
+    }
+    if (selectedId) set.add(selectedId);
+    return set;
+  }, [selectedIds, selectedId, groups]);
+
+  // Multi-selection bounding box in screen space (used for group-drag overlay)
+  // Shows for 2+ elements OR a single group selection
+  const multiSelectionRect = (() => {
+    if (selectedIds.length === 0) return null;
+    const hasGroup = selectedIds.some((id) => groups.some((g) => g.id === id));
+    if (selectedIds.length < 2 && !hasGroup) return null;
+    // Expand group IDs to physical children
+    const physicalEls = selectedIds.flatMap((id) => {
+      const grp = groups.find((g) => g.id === id);
+      if (grp) return elements.filter((el) => grp.childIds.includes(el.id));
+      return elements.filter((el) => el.id === id);
+    });
+    if (physicalEls.length === 0) return null;
+    const bounds = physicalEls.map(getElementBounds);
+    const minX = Math.min(...bounds.map((b) => b.x));
+    const minY = Math.min(...bounds.map((b) => b.y));
+    const maxX = Math.max(...bounds.map((b) => b.x + b.w));
+    const maxY = Math.max(...bounds.map((b) => b.y + b.h));
+    return {
+      left:   minX * zoom + pan.x - 4,
+      top:    minY * zoom + pan.y - 4,
+      width:  (maxX - minX) * zoom + 8,
+      height: (maxY - minY) * zoom + 8,
+    };
+  })();
+
   const viewportStyle: React.CSSProperties = {
     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
     transformOrigin: '0 0',
@@ -736,9 +929,31 @@ export const Whiteboard: React.FC<{
       onMouseLeave={handleMouseUp}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onContextMenu={handleContextMenu}
     >
       {/* ── Viewport (pan/zoom container) ─────────────────────────────────── */}
       <div className={styles.viewport} style={viewportStyle}>
+
+        {/* ── Group borders ────────────────────────────────────────────────── */}
+        {groups.map((grp) => {
+          const children = elements.filter((el) => grp.childIds.includes(el.id));
+          if (children.length === 0) return null;
+          const boxes = children.map(getElementBounds);
+          const gMinX = Math.min(...boxes.map((b) => b.x));
+          const gMinY = Math.min(...boxes.map((b) => b.y));
+          const gMaxX = Math.max(...boxes.map((b) => b.x + b.w));
+          const gMaxY = Math.max(...boxes.map((b) => b.y + b.h));
+          const isGroupSelected = selectedIds.includes(grp.id);
+          return (
+            <div
+              key={grp.id}
+              className={`${styles.groupBorder} ${isGroupSelected ? styles.groupBorderSelected : ''}`}
+              style={{ left: gMinX - 10, top: gMinY - 10, width: gMaxX - gMinX + 20, height: gMaxY - gMinY + 20 }}
+              onClick={() => { if (tool === 'select') setSelectedIds([grp.id]); }}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          );
+        })}
         {/* ── SVG Layer: drawings, shapes, connections ─────────────────── */}
         <svg
           ref={svgRef}
@@ -747,7 +962,7 @@ export const Whiteboard: React.FC<{
           height={canvasHeight}
           style={{
             // 'all' lets SVG shapes/drawings receive click events for select & connection tools
-            pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow') ? 'all' : 'none'
+            pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow' || tool === 'line') ? 'all' : 'none'
           }}
         >
           {/* Grid */}
@@ -767,8 +982,8 @@ export const Whiteboard: React.FC<{
             <DrawingPath
               key={el.id}
               element={el}
-              isSelected={selectedId === el.id || selectedIds.includes(el.id)}
-              onSelect={() => tool === 'select' && setSelectedId(el.id)}
+              isSelected={selectedElementIds.has(el.id)}
+              onSelect={() => handleElementClick(el.id)}
             />
           ))}
 
@@ -788,9 +1003,9 @@ export const Whiteboard: React.FC<{
             <ShapeEl
               key={el.id}
               element={el}
-              isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+              isSelected={selectedElementIds.has(el.id)}
               tool={tool}
-              onSelect={() => setSelectedId(el.id)}
+              onSelect={() => handleElementClick(el.id)}
               onUpdate={(updates) => updateElement(el.id, updates)}
               onStartConnection={() => {
                 const center = getElementCenter(el);
@@ -822,9 +1037,9 @@ export const Whiteboard: React.FC<{
             <ArrowEl
               key={el.id}
               element={el}
-              isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+              isSelected={selectedElementIds.has(el.id)}
               tool={tool}
-              onSelect={() => setSelectedId(el.id)}
+              onSelect={() => handleElementClick(el.id)}
               onUpdate={(updates) => updateElement(el.id, updates)}
             />
           ))}
@@ -853,7 +1068,12 @@ export const Whiteboard: React.FC<{
                 connection={conn}
                 sourceCenter={getElementCenter(src)}
                 targetCenter={getElementCenter(tgt)}
-                isSelected={false}
+                isSelected={selectedConnectionId === conn.id}
+                onClick={() => {
+                  if (tool === 'select') {
+                    setSelectedConnectionId(conn.id);
+                  }
+                }}
               />
             );
           })}
@@ -872,9 +1092,9 @@ export const Whiteboard: React.FC<{
                 <StickyNote
                   key={el.id}
                   element={el as StickyNoteElement}
-                  isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+                  isSelected={selectedElementIds.has(el.id)}
                   tool={tool}
-                  onSelect={() => setSelectedId(el.id)}
+                  onSelect={() => handleElementClick(el.id)}
                   onUpdate={(updates) => updateElement(el.id, updates)}
                   onDelete={() => { snapshot(); removeElement(el.id); }}
                   onStartConnection={() => {
@@ -902,9 +1122,9 @@ export const Whiteboard: React.FC<{
                 <TextBox
                   key={el.id}
                   element={el as TextBoxElement}
-                  isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+                  isSelected={selectedElementIds.has(el.id)}
                   tool={tool}
-                  onSelect={() => setSelectedId(el.id)}
+                  onSelect={() => handleElementClick(el.id)}
                   onUpdate={(updates) => updateElement(el.id, updates)}
                   onDelete={() => { snapshot(); removeElement(el.id); }}
                   onStartConnection={() => {
@@ -932,9 +1152,9 @@ export const Whiteboard: React.FC<{
                 <ImageEl
                   key={el.id}
                   element={el as ImageElement}
-                  isSelected={selectedId === el.id || selectedIds.includes(el.id)}
+                  isSelected={selectedElementIds.has(el.id)}
                   tool={tool}
-                  onSelect={() => setSelectedId(el.id)}
+                  onSelect={() => handleElementClick(el.id)}
                   onUpdate={(updates) => updateElement(el.id, updates)}
                   onDelete={() => { snapshot(); removeElement(el.id); }}
                   onStartConnection={() => {
@@ -1005,7 +1225,64 @@ export const Whiteboard: React.FC<{
           };
           reader.readAsDataURL(file);
         }}
-      />      {/* ── Lasso selection rectangle ────────────────────────────────────────────── */}
+      />      {/* ── Multi-selection drag overlay ───────────────────────────────────────── */}
+      {multiSelectionRect && (
+        <div
+          className={styles.multiSelectRect}
+          style={{
+            left:   multiSelectionRect.left,
+            top:    multiSelectionRect.top,
+            width:  multiSelectionRect.width,
+            height: multiSelectionRect.height,
+          }}
+          onMouseDown={(e) => {
+            if (tool !== 'select') return;
+            e.stopPropagation();
+            e.preventDefault();
+            snapshot();
+            // Expand group IDs to their physical child elements
+            const origins = selectedIds.flatMap((id) => {
+              const grp = groups.find((g) => g.id === id);
+              const physIds = grp ? grp.childIds : [id];
+              return elements
+                .filter((el) => physIds.includes(el.id))
+                .map((el) => {
+                  if (el.type === 'arrow') {
+                    return { id: el.id, x: el.x, y: el.y, x2: (el as ArrowElement).x2, y2: (el as ArrowElement).y2 };
+                  }
+                  return { id: el.id, x: el.x, y: el.y };
+                });
+            });
+            multiDragRef.current = { mx: e.clientX, my: e.clientY, origins };
+
+            const onMove = (ev: MouseEvent) => {
+              if (!multiDragRef.current) return;
+              const ddx = (ev.clientX - multiDragRef.current.mx) / zoom;
+              const ddy = (ev.clientY - multiDragRef.current.my) / zoom;
+              multiDragRef.current.origins.forEach(({ id, x, y, x2, y2 }) => {
+                const updates: Record<string, number> = {
+                  x: gridEnabled ? snapVal(x + ddx, gridSize) : x + ddx,
+                  y: gridEnabled ? snapVal(y + ddy, gridSize) : y + ddy,
+                };
+                if (x2 !== undefined && y2 !== undefined) {
+                  updates.x2 = gridEnabled ? snapVal(x2 + ddx, gridSize) : x2 + ddx;
+                  updates.y2 = gridEnabled ? snapVal(y2 + ddy, gridSize) : y2 + ddy;
+                }
+                updateElement(id, updates as Partial<WhiteboardElement>);
+              });
+            };
+            const onUp = () => {
+              multiDragRef.current = null;
+              window.removeEventListener('mousemove', onMove);
+              window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+          }}
+        />
+      )}
+
+      {/* ── Lasso selection rectangle ────────────────────────────────────────────── */}
       {lassoScreenRect && (
         <div
           className={styles.lassoRect}
@@ -1020,6 +1297,65 @@ export const Whiteboard: React.FC<{
 
       {/* ── Properties panel ──────────────────────────────────────────── */}
       <PropertiesPanel />
+
+      {/* ── Context menu ──────────────────────────────────────────────── */}
+      {contextMenu && (() => {
+        const { selectedId: sid, selectedIds: sids, groups: ctxGroups } = useWhiteboardStore.getState();
+        const ids = sids.length > 0 ? sids : sid ? [sid] : [];
+        // Expand group IDs to physical elements for copy/delete
+        const physicalIds = new Set<string>();
+        for (const id of ids) {
+          const grp = ctxGroups.find((g) => g.id === id);
+          if (grp) grp.childIds.forEach((cid) => physicalIds.add(cid));
+          else physicalIds.add(id);
+        }
+        const selectedEls = elements.filter((el) => physicalIds.has(el.id));
+        const hasSelection = selectedEls.length > 0 || ids.length > 0;
+        const hasClipboard = _clipboard.length > 0;
+
+        const menuItems: ContextMenuEntry[] = [
+          {
+            label: 'Cut',
+            shortcut: 'Ctrl+X',
+            disabled: !hasSelection,
+            onClick: () => handleCopy(true),
+          },
+          {
+            label: 'Copy',
+            shortcut: 'Ctrl+C',
+            disabled: !hasSelection,
+            onClick: () => handleCopy(false),
+          },
+          {
+            label: 'Paste',
+            shortcut: 'Ctrl+V',
+            disabled: !hasClipboard,
+            onClick: () => handlePaste(contextMenu.canvasX, contextMenu.canvasY),
+          },
+          { separator: true },
+          {
+            label: 'Delete',
+            shortcut: 'Del',
+            disabled: !hasSelection,
+            danger: true,
+            onClick: () => {
+              if (selectedEls.length > 0) {
+                snapshot();
+                selectedEls.forEach((el) => removeElement(el.id));
+              }
+            },
+          },
+        ];
+
+        return (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            items={menuItems}
+            onClose={() => setContextMenu(null)}
+          />
+        );
+      })()}
 
       {/* ── Export dialog ─────────────────────────────────────────────────── */}
       {showExportDialog && (() => {

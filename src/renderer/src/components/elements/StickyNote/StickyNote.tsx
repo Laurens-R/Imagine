@@ -134,11 +134,11 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
           value={element.text}
           onChange={(e) => onUpdate({ text: e.target.value })}
           onBlur={handleTextBlur}
-          style={{ fontFamily: element.font, fontSize: element.fontSize }}
+          style={{ fontFamily: element.font, fontSize: element.fontSize, textAlign: element.textAlign ?? 'left' }}
           onMouseDown={(e) => e.stopPropagation()}
         />
       ) : (
-        <div className={styles.text}>{element.text || <span className={styles.placeholder}>Double-click to edit</span>}</div>
+        <div className={styles.text} style={{ textAlign: element.textAlign ?? 'left' }}>{element.text || <span className={styles.placeholder}>Double-click to edit</span>}</div>
       )}
 
       {/* Resize handles */}

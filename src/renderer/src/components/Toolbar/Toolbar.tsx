@@ -64,6 +64,11 @@ const IconArrow = () => (
     <polyline points="9 5 19 5 19 15" />
   </svg>
 );
+const IconLine = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+    <line x1="5" y1="19" x2="19" y2="5" />
+  </svg>
+);
 const IconGrid = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
@@ -88,6 +93,82 @@ const IconTrash = () => (
     <path d="M19 6l-1 14H6L5 6" />
     <path d="M10 11v6M14 11v6" />
     <path d="M9 6V4h6v2" />
+  </svg>
+);
+
+// ── Alignment icons ───────────────────────────────────────────────────────────
+
+const IconAlignLeft = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="3" x2="3" y2="17" />
+    <rect x="3" y="4.5" width="12" height="4" rx="0.8" />
+    <rect x="3" y="11.5" width="8" height="4" rx="0.8" />
+  </svg>
+);
+const IconAlignRight = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="17" y1="3" x2="17" y2="17" />
+    <rect x="5" y="4.5" width="12" height="4" rx="0.8" />
+    <rect x="9" y="11.5" width="8" height="4" rx="0.8" />
+  </svg>
+);
+const IconAlignCenterH = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="10" y1="3" x2="10" y2="17" />
+    <rect x="3" y="4.5" width="14" height="4" rx="0.8" />
+    <rect x="5" y="11.5" width="10" height="4" rx="0.8" />
+  </svg>
+);
+const IconAlignTop = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="3" x2="17" y2="3" />
+    <rect x="4.5" y="3" width="4" height="12" rx="0.8" />
+    <rect x="11.5" y="3" width="4" height="8" rx="0.8" />
+  </svg>
+);
+const IconAlignCenterV = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="10" x2="17" y2="10" />
+    <rect x="4.5" y="4" width="4" height="12" rx="0.8" />
+    <rect x="11.5" y="5" width="4" height="10" rx="0.8" />
+  </svg>
+);
+const IconAlignBottom = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="17" x2="17" y2="17" />
+    <rect x="4.5" y="5" width="4" height="12" rx="0.8" />
+    <rect x="11.5" y="9" width="4" height="8" rx="0.8" />
+  </svg>
+);
+const IconDistributeH = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="3" x2="3" y2="17" />
+    <line x1="17" y1="3" x2="17" y2="17" />
+    <rect x="7.5" y="6" width="5" height="8" rx="0.8" />
+  </svg>
+);
+const IconDistributeV = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+    <line x1="3" y1="3" x2="17" y2="3" />
+    <line x1="3" y1="17" x2="17" y2="17" />
+    <rect x="6" y="7.5" width="8" height="5" rx="0.8" />
+  </svg>
+);
+const IconGroup = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="6" height="6" rx="1" />
+    <rect x="12" y="9" width="6" height="6" rx="1" />
+    <rect x="1" y="1" width="18" height="18" rx="2.5" strokeDasharray="3 2" />
+  </svg>
+);
+const IconUngroup = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="6" height="6" rx="1" />
+    <rect x="12" y="9" width="6" height="6" rx="1" />
+    <line x1="1" y1="1" x2="4" y2="1" />
+    <line x1="16" y1="1" x2="19" y2="1" />
+    <line x1="1" y1="19" x2="4" y2="19" />
+    <line x1="16" y1="19" x2="19" y2="19" />
   </svg>
 );
 
@@ -150,6 +231,8 @@ export const Toolbar: React.FC = () => {
   const zoom = useWhiteboardStore((s) => s.zoom);
   const undoStack = useWhiteboardStore((s) => s.undoStack);
   const redoStack = useWhiteboardStore((s) => s.redoStack);
+  const selectedIds = useWhiteboardStore((s) => s.selectedIds);
+  const groups = useWhiteboardStore((s) => s.groups);
 
   const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
   const gridSize = useWhiteboardStore((s) => s.gridSize);
@@ -169,7 +252,11 @@ export const Toolbar: React.FC = () => {
     redo,
     clearAll,
     setGridEnabled,
-    setGridSize
+    setGridSize,
+    alignSelected,
+    distributeSelected,
+    groupSelected,
+    ungroupSelected,
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
@@ -202,12 +289,13 @@ export const Toolbar: React.FC = () => {
     { id: 'text-box', icon: <IconTextBox />, label: 'Text Box (T)' },
     { id: 'shape', icon: <IconShape />, label: 'Shape (R)' },
     { id: 'arrow', icon: <IconArrow />, label: 'Arrow (A)' },
+    { id: 'line', icon: <IconLine />, label: 'Line (L)' },
     { id: 'connection', icon: <IconConnection />, label: 'Connection (C)' },
     { id: 'image', icon: <IconImage />, label: 'Image (I)' }
   ];
 
-  const showColorPicker = ['sharpie', 'shape', 'text-box', 'arrow'].includes(tool);
-  const showSizeSlider = ['sharpie', 'arrow'].includes(tool);
+  const showColorPicker = ['sharpie', 'shape', 'text-box', 'arrow', 'line'].includes(tool);
+  const showSizeSlider = ['sharpie', 'arrow', 'line'].includes(tool);
   const showFontOptions = ['sticky-note', 'text-box'].includes(tool);
   const showStickyColors = tool === 'sticky-note';
   const showRoughnessSlider = tool === 'shape';
@@ -361,9 +449,37 @@ export const Toolbar: React.FC = () => {
               </div>
             </>
           )}
-        </div>
 
-        <div className={styles.divider} />
+          {/* Alignment: shown when selection tool + 2+ elements selected, or a group is selected */}
+          {tool === 'select' && (() => {
+            const hasGroup = selectedIds.some((id) => groups.some((g) => g.id === id));
+            if (!hasGroup && selectedIds.length < 2) return null;
+            const canGroup = !hasGroup && selectedIds.length >= 2;
+            const canUngroup = hasGroup;
+            return (
+              <div className={styles.alignGroup}>
+                <div className={styles.alignSubGroup}>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('left')}     title="Align left"><IconAlignLeft /></button>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('center-h')} title="Align center (horizontal)"><IconAlignCenterH /></button>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('right')}    title="Align right"><IconAlignRight /></button>
+                </div>
+                <div className={styles.alignSubGroup}>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('top')}      title="Align top"><IconAlignTop /></button>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('center-v')} title="Align middle (vertical)"><IconAlignCenterV /></button>
+                  <button className={styles.alignBtn} onClick={() => alignSelected('bottom')}   title="Align bottom"><IconAlignBottom /></button>
+                </div>
+                <div className={styles.alignSubGroup}>
+                  <button className={styles.alignBtn} onClick={() => distributeSelected('horizontal')} title="Distribute horizontally" disabled={selectedIds.length < 3}><IconDistributeH /></button>
+                  <button className={styles.alignBtn} onClick={() => distributeSelected('vertical')}   title="Distribute vertically"   disabled={selectedIds.length < 3}><IconDistributeV /></button>
+                </div>
+                <div className={styles.alignSubGroup}>
+                  {canGroup   && <button className={styles.alignBtn} onClick={groupSelected}   title="Group (Ctrl+G)"><IconGroup /></button>}
+                  {canUngroup && <button className={styles.alignBtn} onClick={ungroupSelected} title="Ungroup"><IconUngroup /></button>}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
         {/* ── Right: Actions ─────────────────────────────────────────── */}
         <div className={styles.actionsGroup}>

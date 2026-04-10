@@ -438,3 +438,50 @@
   text-align: right;
   flex-shrink: 0;
 }
+
+// ── Alignment buttons ───────────────────────────────────────────────────────
+
+.alignGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.alignSubGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  padding: 2px;
+}
+
+.alignBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: calc(#{$border-radius-md} - 2px);
+  background: transparent;
+  color: $toolbar-icon;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+  flex-shrink: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    background: $toolbar-hover;
+    color: $toolbar-text;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}

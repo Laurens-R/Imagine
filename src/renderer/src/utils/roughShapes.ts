@@ -88,7 +88,7 @@ export function generateRoughPaths(element: ShapeElement): RoughPath[] {
     strokeWidth: 2,
     fill: fillColor !== 'transparent' ? fillColor : undefined,
     stroke: strokeColor,
-    fillStyle: 'hachure',
+    fillStyle: 'solid',
     seed
   };
 

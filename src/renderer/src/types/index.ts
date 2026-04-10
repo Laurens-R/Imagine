@@ -9,7 +9,8 @@ export type ToolType =
   | 'shape'
   | 'connection'
   | 'image'
-  | 'arrow';
+  | 'arrow'
+  | 'line';
 
 export type ShapeType =
   | 'rectangle'
@@ -27,6 +28,8 @@ export type FontFamily =
   | 'Kalam'
   | 'Patrick Hand'
   | 'Permanent Marker';
+
+export type TextAlign = 'left' | 'center' | 'right';
 
 export type StickyColor =
   | '#fef08a'
@@ -69,6 +72,7 @@ export interface StickyNoteElement extends SizedElement {
   backgroundColor: StickyColor;
   font: FontFamily;
   fontSize: number;
+  textAlign?: TextAlign;
 }
 
 /** Editable free text box */
@@ -80,6 +84,7 @@ export interface TextBoxElement extends SizedElement {
   color: string;
   bold: boolean;
   italic: boolean;
+  textAlign?: TextAlign;
 }
 
 /** Hand-drawn shape (rendered with rough.js) */
@@ -99,13 +104,15 @@ export interface ImageElement extends SizedElement {
   caption: string;
 }
 
-/** Two-point arrow */
+/** Two-point arrow (or straight line when showArrowhead is false) */
 export interface ArrowElement extends BaseElement {
   type: 'arrow';
   x2: number;
   y2: number;
   color: string;
   strokeWidth: number;
+  /** When false the element is rendered as a plain line (no arrowhead). Default: true */
+  showArrowhead?: boolean;
 }
 
 export type WhiteboardElement =
@@ -160,11 +167,18 @@ export interface Point {
   y: number;
 }
 
+/** Logical grouping of elements – not a rendered element itself */
+export interface ElementGroup {
+  id: string;
+  childIds: string[];
+}
+
 // ─── History Snapshot ────────────────────────────────────────────────────────
 
 export interface HistorySnapshot {
   elements: WhiteboardElement[];
   connections: Connection[];
+  groups: ElementGroup[];
 }
 
 // ─── Font Definitions ─────────────────────────────────────────────────────────
