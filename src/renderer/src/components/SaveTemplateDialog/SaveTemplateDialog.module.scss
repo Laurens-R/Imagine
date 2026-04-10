@@ -1,0 +1,116 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: #1e1e36;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  padding: 24px;
+  width: 360px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $toolbar-text;
+  margin: 0;
+  font-family: $font-system;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $toolbar-icon;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color $transition-fast;
+
+  &:hover { color: $toolbar-text; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.hint {
+  font-size: 12px;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-text;
+  font-size: 13px;
+  font-family: $font-system;
+  outline: none;
+  transition: border-color $transition-fast;
+
+  &:focus { border-color: $accent-primary; }
+  &::placeholder { color: $toolbar-icon; }
+  &:disabled { opacity: 0.5; }
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid $toolbar-border;
+}
+
+.cancelBtn {
+  padding: 8px 18px;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  background: transparent;
+  color: $toolbar-icon;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: $font-system;
+  transition: all $transition-fast;
+
+  &:hover { border-color: $toolbar-text; color: $toolbar-text; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.saveBtn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: $border-radius-md;
+  background: $accent-primary;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: $font-system;
+  transition: background $transition-fast, opacity $transition-fast;
+
+  &:hover { background: rgba(124, 106, 255, 0.82); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}

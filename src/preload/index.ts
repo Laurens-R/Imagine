@@ -10,6 +10,11 @@ const whiteboardApi = {
   openBoard: () => ipcRenderer.invoke('board:open'),
   exportImage: (dataUrl: string, format: string) =>
     ipcRenderer.invoke('board:exportImage', dataUrl, format),
+  saveTemplate: (name: string, data: string) =>
+    ipcRenderer.invoke('templates:save', name, data),
+  listTemplates: () => ipcRenderer.invoke('templates:list'),
+  loadTemplate: (name: string) => ipcRenderer.invoke('templates:load', name),
+  deleteTemplate: (name: string) => ipcRenderer.invoke('templates:delete', name),
 };
 
 if (process.contextIsolated) {

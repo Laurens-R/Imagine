@@ -68,7 +68,11 @@ const FileMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
 
 // ── Main TitleBar ────────────────────────────────────────────────────────────
 
-export const TitleBar: React.FC<{ onExport?: () => void }> = ({ onExport }) => {
+export const TitleBar: React.FC<{
+  onExport?: () => void;
+  onSaveTemplate?: () => void;
+  onNew?: () => void;
+}> = ({ onExport, onSaveTemplate, onNew }) => {
   const currentFile = useWhiteboardStore((s) => s.currentFile);
   const elements = useWhiteboardStore((s) => s.elements);
   const connections = useWhiteboardStore((s) => s.connections);
@@ -77,12 +81,17 @@ export const TitleBar: React.FC<{ onExport?: () => void }> = ({ onExport }) => {
   const [saving, setSaving] = useState(false);
 
   const handleNew = () => {
-    if (elements.length > 0 || connections.length > 0) {
-      if (!window.confirm('Discard current whiteboard and start a new one?')) return;
+    if (onNew) {
+      onNew();
+    } else {
+      // Fallback: no dialog provided, just clear
+      if (elements.length > 0 || connections.length > 0) {
+        if (!window.confirm('Discard current whiteboard and start a new one?')) return;
+      }
+      snapshot();
+      clearAll();
+      setCurrentFile(null);
     }
-    snapshot();
-    clearAll();
-    setCurrentFile(null);
   };
 
   const handleOpen = async () => {
@@ -127,6 +136,7 @@ export const TitleBar: React.FC<{ onExport?: () => void }> = ({ onExport }) => {
     { divider: true, label: '', action: () => {} },
     { label: 'Save', shortcut: 'Ctrl+S', action: handleSave, disabled: saving },
     { label: 'Save As…', action: handleSaveAs, disabled: saving },
+    { label: 'Save as Template…', action: () => onSaveTemplate?.(), disabled: !onSaveTemplate },
     { divider: true, label: '', action: () => {} },
     { label: 'Export as Image…', action: () => onExport?.(), disabled: !onExport },
   ];

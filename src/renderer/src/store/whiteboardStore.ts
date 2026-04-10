@@ -110,7 +110,7 @@ interface WhiteboardActions {
   clearAll: () => void;
 
   // File
-  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string) => void;
+  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string | null) => void;
   setCurrentFile: (filePath: string | null) => void;
 
   // Grid

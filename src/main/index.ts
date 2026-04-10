@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
 import { join } from 'path';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, readdir, unlink, mkdir } from 'fs/promises';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
 function createWindow(): void {
@@ -89,6 +89,44 @@ function createWindow(): void {
     if (!base64) return { canceled: true };
     await writeFile(result.filePath, Buffer.from(base64, 'base64'));
     return { filePath: result.filePath };
+  });
+
+  // ── Template IPC ─────────────────────────────────────────────────────────
+  const templatesDir = join(app.getPath('userData'), 'templates');
+
+  ipcMain.handle('templates:save', async (_e, name: string, data: string) => {
+    await mkdir(templatesDir, { recursive: true });
+    // Sanitise name to safe filename characters
+    const safe = name.replace(/[^a-zA-Z0-9 _\-()]/g, '').trim() || 'template';
+    const filePath = join(templatesDir, `${safe}.imagine-template`);
+    await writeFile(filePath, data, 'utf8');
+    return { name: safe };
+  });
+
+  ipcMain.handle('templates:list', async () => {
+    try {
+      await mkdir(templatesDir, { recursive: true });
+      const files = await readdir(templatesDir);
+      return files
+        .filter((f) => f.endsWith('.imagine-template'))
+        .map((f) => f.replace(/\.imagine-template$/, ''));
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('templates:load', async (_e, name: string) => {
+    const safe = name.replace(/[^a-zA-Z0-9 _\-()]/g, '').trim();
+    const filePath = join(templatesDir, `${safe}.imagine-template`);
+    const data = await readFile(filePath, 'utf8');
+    return { data };
+  });
+
+  ipcMain.handle('templates:delete', async (_e, name: string) => {
+    const safe = name.replace(/[^a-zA-Z0-9 _\-()]/g, '').trim();
+    const filePath = join(templatesDir, `${safe}.imagine-template`);
+    await unlink(filePath);
+    return {};
   });
 }
 
