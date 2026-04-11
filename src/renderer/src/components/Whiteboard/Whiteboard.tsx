@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useWhiteboardStore, selectSortedElements } from '../../store/whiteboardStore';
+import { selectAllPages } from '../../store/whiteboardStore';
 import { generateDrawingPath, generateDotPath } from '../../utils/drawing';
 import { generatePreviewRoughPaths, idToSeed } from '../../utils/roughShapes';
 import { screenToCanvas, naturalRotation, polaroidRotation } from '../../utils/helpers';
@@ -120,6 +121,8 @@ export const Whiteboard: React.FC<{
     clearAll,
     groupSelected,
     ungroupSelected,
+    switchPage,
+    addPage,
   } = useWhiteboardStore();
 
   const currentFile = useWhiteboardStore((s) => s.currentFile);
@@ -311,9 +314,10 @@ export const Whiteboard: React.FC<{
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
         e.preventDefault();
-        const { elements: els, connections: conns, groups: grps, currentFile: cf } = useWhiteboardStore.getState();
-        const data = JSON.stringify({ elements: els, connections: conns, groups: grps }, null, 2);
-        window.whiteboardApi.saveBoard(data, cf ?? undefined).then((r) => {
+        const storeState = useWhiteboardStore.getState();
+        const allPages = selectAllPages(storeState);
+        const data = JSON.stringify({ version: 2, pages: allPages }, null, 2);
+        window.whiteboardApi.saveBoard(data, storeState.currentFile ?? undefined).then((r) => {
           if (!r.canceled && r.filePath) setCurrentFile(r.filePath);
         });
       }
@@ -323,7 +327,11 @@ export const Whiteboard: React.FC<{
           if (!r.canceled && r.data && r.filePath) {
             try {
               const parsed = JSON.parse(r.data);
-              loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath, parsed.groups ?? []);
+              if (parsed.pages) {
+                loadBoard([], [], r.filePath, [], parsed.pages);
+              } else {
+                loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath, parsed.groups ?? []);
+              }
             } catch { /* ignore */ }
           }
         });
@@ -405,6 +413,22 @@ export const Whiteboard: React.FC<{
         lassoRef.current = null;
         setLasso(null);
       }
+      if (e.key === 'PageDown') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          const { currentPageIndex: cpi, pages: pgs } = useWhiteboardStore.getState();
+          if (cpi < pgs.length - 1) switchPage(cpi + 1);
+        }
+      }
+      if (e.key === 'PageUp') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          const { currentPageIndex: cpi } = useWhiteboardStore.getState();
+          if (cpi > 0) switchPage(cpi - 1);
+        }
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') setIsSpaceDown(false);
@@ -416,7 +440,7 @@ export const Whiteboard: React.FC<{
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [selectedId, selectedIds, removeElement, removeConnection, setSelectedId, setSelectedIds, setSelectedConnectionId, setPendingConnection, undo, redo, snapshot, loadBoard, setCurrentFile, clearAll, handleCopy, handlePaste, groupSelected, ungroupSelected]);
+  }, [selectedId, selectedIds, removeElement, removeConnection, setSelectedId, setSelectedIds, setSelectedConnectionId, setPendingConnection, undo, redo, snapshot, loadBoard, setCurrentFile, clearAll, handleCopy, handlePaste, groupSelected, ungroupSelected, switchPage, addPage]);
 
   // ── Prevent Electron from navigating on file drag-drop ────────────────────
   useEffect(() => {
@@ -1559,6 +1583,12 @@ export const Whiteboard: React.FC<{
             shortcut: 'Ctrl+C',
             disabled: !hasSelection,
             onClick: () => handleCopy(false),
+          },
+          {
+            label: 'Duplicate',
+            shortcut: 'Ctrl+D',
+            disabled: !hasSelection,
+            onClick: () => { handleCopy(false); handlePaste(); },
           },
           {
             label: 'Paste',

@@ -178,6 +178,13 @@ const IconResetRotation = () => (
     <line x1="10" y1="10" x2="10" y2="6" strokeWidth={2} />
   </svg>
 );
+const IconTray = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="14" rx="2" />
+    <path d="M3 20h18" />
+    <path d="M9 13l3 3 3-3" />
+  </svg>
+);
 
 // ── Shape icons ─────────────────────────────────────────────────────────────
 
@@ -555,6 +562,14 @@ export const Toolbar: React.FC = () => {
           )}
 
           <div className={styles.divider} />
+
+          <button
+            className={styles.actionBtn}
+            onClick={() => window.whiteboardApi.hideToTray()}
+            title="Minimize to system tray (Ctrl+Shift+Space to restore)"
+          >
+            <IconTray />
+          </button>
 
           <button
             className={`${styles.actionBtn} ${confirmClear ? styles.danger : ''}`}

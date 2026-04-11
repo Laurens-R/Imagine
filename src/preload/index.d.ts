@@ -11,6 +11,7 @@ interface WhiteboardAPI {
   listTemplates: () => Promise<string[]>;
   loadTemplate: (name: string) => Promise<{ data: string }>;
   deleteTemplate: (name: string) => Promise<Record<string, never>>;
+  hideToTray: () => void;
 }
 
 declare global {

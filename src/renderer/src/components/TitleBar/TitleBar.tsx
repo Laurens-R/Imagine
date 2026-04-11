@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWhiteboardStore } from '../../store/whiteboardStore';
+import { selectAllPages } from '../../store/whiteboardStore';
 import styles from './TitleBar.module.scss';
 
 // ── File menu items ──────────────────────────────────────────────────────────
@@ -99,7 +100,11 @@ export const TitleBar: React.FC<{
       const result = await window.whiteboardApi.openBoard();
       if (!result.canceled && result.data && result.filePath) {
         const parsed = JSON.parse(result.data);
-        loadBoard(parsed.elements ?? [], parsed.connections ?? [], result.filePath);
+        if (parsed.pages) {
+          loadBoard([], [], result.filePath, [], parsed.pages);
+        } else {
+          loadBoard(parsed.elements ?? [], parsed.connections ?? [], result.filePath, parsed.groups ?? []);
+        }
       }
     } catch {
       alert('Failed to open file – it may be corrupted.');
@@ -110,7 +115,8 @@ export const TitleBar: React.FC<{
     if (saving) return;
     setSaving(true);
     try {
-      const data = JSON.stringify({ elements, connections }, null, 2);
+      const allPages = selectAllPages(useWhiteboardStore.getState());
+      const data = JSON.stringify({ version: 2, pages: allPages }, null, 2);
       const result = await window.whiteboardApi.saveBoard(data, currentFile ?? undefined);
       if (!result.canceled && result.filePath) setCurrentFile(result.filePath);
     } finally {
@@ -122,7 +128,8 @@ export const TitleBar: React.FC<{
     if (saving) return;
     setSaving(true);
     try {
-      const data = JSON.stringify({ elements, connections }, null, 2);
+      const allPages = selectAllPages(useWhiteboardStore.getState());
+      const data = JSON.stringify({ version: 2, pages: allPages }, null, 2);
       const result = await window.whiteboardApi.saveBoard(data);
       if (!result.canceled && result.filePath) setCurrentFile(result.filePath);
     } finally {

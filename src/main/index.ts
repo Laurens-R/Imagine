@@ -1,7 +1,54 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, globalShortcut } from 'electron';
 import { join } from 'path';
 import { readFile, writeFile, readdir, unlink, mkdir } from 'fs/promises';
+import { deflateSync } from 'zlib';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
+
+let tray: Tray | null = null;
+
+// Build a 16×16 purple (#7c6aff) RGBA PNG icon for the system tray
+function buildTrayIcon(): ReturnType<typeof nativeImage.createFromBuffer> {
+  const size = 16;
+  const row = Buffer.alloc(1 + size * 4);
+  row[0] = 0; // filter: None
+  for (let i = 0; i < size; i++) {
+    row[1 + i * 4 + 0] = 0x7c;
+    row[1 + i * 4 + 1] = 0x6a;
+    row[1 + i * 4 + 2] = 0xff;
+    row[1 + i * 4 + 3] = 0xff;
+  }
+  const raw = Buffer.concat(Array.from({ length: size }, () => Buffer.from(row)));
+  const idat = deflateSync(raw);
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c;
+    }
+    return t;
+  })();
+  const crc32 = (buf: Buffer): number => {
+    let c = 0xffffffff;
+    for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+    return (~c) >>> 0;
+  };
+  const buildChunk = (type: string, data: Buffer): Buffer => {
+    const t = Buffer.from(type, 'ascii');
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length, 0);
+    const cv = Buffer.alloc(4); cv.writeUInt32BE(crc32(Buffer.concat([t, data])), 0);
+    return Buffer.concat([len, t, data, cv]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; ihdr[9] = 6; // 8-bit depth, RGBA color type
+  return nativeImage.createFromBuffer(Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    buildChunk('IHDR', ihdr),
+    buildChunk('IDAT', idat),
+    buildChunk('IEND', Buffer.alloc(0))
+  ]));
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -48,6 +95,7 @@ function createWindow(): void {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
   ipcMain.on('win:close', () => mainWindow.close());
+  ipcMain.on('win:hide-to-tray', () => mainWindow.hide());
 
   // ── File IPC ─────────────────────────────────────────────────────────────
   ipcMain.handle('board:save', async (_e, data: string, filePath?: string) => {
@@ -128,6 +176,26 @@ function createWindow(): void {
     await unlink(filePath);
     return {};
   });
+
+  // ── System tray ───────────────────────────────────────────────────────────
+  tray = new Tray(buildTrayIcon());
+  tray.setToolTip('Imagine');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Show Imagine', click: () => { mainWindow.show(); mainWindow.focus(); } },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() }
+  ]));
+  tray.on('click', () => { mainWindow.show(); mainWindow.focus(); });
+
+  // Toggle hide/show with Ctrl+Shift+Space (works when visible or in tray)
+  globalShortcut.register('Ctrl+Shift+Space', () => {
+    if (mainWindow.isVisible() && mainWindow.isFocused()) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
 }
 
 app.whenReady().then(() => {
@@ -142,6 +210,12 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('before-quit', () => {
+  globalShortcut.unregisterAll();
+  tray?.destroy();
+  tray = null;
 });
 
 app.on('window-all-closed', () => {

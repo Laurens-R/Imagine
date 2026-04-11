@@ -16,6 +16,7 @@ import type {
   StickyColor,
   HistorySnapshot,
   ElementGroup,
+  PageData,
 } from '../types';
 
 const MAX_HISTORY = 60;
@@ -67,6 +68,10 @@ interface WhiteboardState {
 
   // Groups
   groups: ElementGroup[];
+
+  // Pages
+  pages: PageData[];
+  currentPageIndex: number;
 }
 
 interface WhiteboardActions {
@@ -117,8 +122,14 @@ interface WhiteboardActions {
   clearAll: () => void;
 
   // File
-  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string | null, groups?: ElementGroup[]) => void;
+  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string | null, groups?: ElementGroup[], pages?: PageData[]) => void;
   setCurrentFile: (filePath: string | null) => void;
+
+  // Pages
+  addPage: () => void;
+  removePage: (index: number) => void;
+  switchPage: (index: number) => void;
+  renamePage: (index: number, label: string) => void;
 
   // Grid
   setGridEnabled: (enabled: boolean) => void;
@@ -176,6 +187,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     elements: [],
     connections: [],
     groups: [],
+    pages: [{ id: uuidv4(), label: 'Page 1', elements: [], connections: [], groups: [] }],
+    currentPageIndex: 0,
     selectedId: null,
     selectedIds: [],
     selectedConnectionId: null,
@@ -412,11 +425,22 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.selectedIds = [];
       }),
 
-    loadBoard: (elements, connections, filePath, groups) =>
+    loadBoard: (elements, connections, filePath, groups, pages) =>
       set((state) => {
-        state.elements = elements;
-        state.connections = connections;
-        state.groups = groups ?? [];
+        if (pages && pages.length > 0) {
+          state.pages = JSON.parse(JSON.stringify(pages));
+          state.currentPageIndex = 0;
+          const firstPage = state.pages[0];
+          state.elements = firstPage.elements;
+          state.connections = firstPage.connections;
+          state.groups = firstPage.groups ?? [];
+        } else {
+          state.elements = elements;
+          state.connections = connections;
+          state.groups = groups ?? [];
+          state.pages = [{ id: uuidv4(), label: 'Page 1', elements: JSON.parse(JSON.stringify(elements)), connections: JSON.parse(JSON.stringify(connections)), groups: JSON.parse(JSON.stringify(groups ?? [])) }];
+          state.currentPageIndex = 0;
+        }
         state.selectedId = null;
         state.selectedIds = [];
         state.undoStack = [];
@@ -429,6 +453,89 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     setCurrentFile: (filePath) =>
       set((state) => {
         state.currentFile = filePath;
+      }),
+
+    // ── Page Actions ───────────────────────────────────────────────────────
+    addPage: () =>
+      set((state) => {
+        // Flush current page
+        state.pages[state.currentPageIndex] = {
+          ...state.pages[state.currentPageIndex],
+          elements: JSON.parse(JSON.stringify(state.elements)),
+          connections: JSON.parse(JSON.stringify(state.connections)),
+          groups: JSON.parse(JSON.stringify(state.groups)),
+        };
+        const newPage: PageData = {
+          id: uuidv4(),
+          label: `Page ${state.pages.length + 1}`,
+          elements: [],
+          connections: [],
+          groups: [],
+        };
+        state.pages.push(newPage);
+        state.currentPageIndex = state.pages.length - 1;
+        state.elements = [];
+        state.connections = [];
+        state.groups = [];
+        state.selectedId = null;
+        state.selectedIds = [];
+        state.undoStack = [];
+        state.redoStack = [];
+        state.pendingConnection = null;
+      }),
+
+    removePage: (index: number) =>
+      set((state) => {
+        if (state.pages.length <= 1) return;
+        // Flush current
+        state.pages[state.currentPageIndex] = {
+          ...state.pages[state.currentPageIndex],
+          elements: JSON.parse(JSON.stringify(state.elements)),
+          connections: JSON.parse(JSON.stringify(state.connections)),
+          groups: JSON.parse(JSON.stringify(state.groups)),
+        };
+        state.pages.splice(index, 1);
+        let newIndex = state.currentPageIndex;
+        if (index < newIndex) newIndex -= 1;
+        else if (newIndex >= state.pages.length) newIndex = state.pages.length - 1;
+        const p = state.pages[newIndex];
+        state.elements = JSON.parse(JSON.stringify(p.elements));
+        state.connections = JSON.parse(JSON.stringify(p.connections));
+        state.groups = JSON.parse(JSON.stringify(p.groups ?? []));
+        state.currentPageIndex = newIndex;
+        state.selectedId = null;
+        state.selectedIds = [];
+        state.undoStack = [];
+        state.redoStack = [];
+        state.pendingConnection = null;
+      }),
+
+    switchPage: (newIndex: number) =>
+      set((state) => {
+        if (newIndex === state.currentPageIndex) return;
+        if (newIndex < 0 || newIndex >= state.pages.length) return;
+        // Flush current
+        state.pages[state.currentPageIndex] = {
+          ...state.pages[state.currentPageIndex],
+          elements: JSON.parse(JSON.stringify(state.elements)),
+          connections: JSON.parse(JSON.stringify(state.connections)),
+          groups: JSON.parse(JSON.stringify(state.groups)),
+        };
+        const p = state.pages[newIndex];
+        state.elements = JSON.parse(JSON.stringify(p.elements));
+        state.connections = JSON.parse(JSON.stringify(p.connections));
+        state.groups = JSON.parse(JSON.stringify(p.groups ?? []));
+        state.currentPageIndex = newIndex;
+        state.selectedId = null;
+        state.selectedIds = [];
+        state.undoStack = [];
+        state.redoStack = [];
+        state.pendingConnection = null;
+      }),
+
+    renamePage: (index: number, label: string) =>
+      set((state) => {
+        if (state.pages[index]) state.pages[index].label = label.trim() || `Page ${index + 1}`;
       }),
 
     setGridEnabled: (enabled) => set((state) => { state.gridEnabled = enabled; }),
@@ -616,3 +723,11 @@ export const selectSortedElements = (state: WhiteboardStore) =>
 
 export const selectElement = (id: string) => (state: WhiteboardStore) =>
   state.elements.find((el) => el.id === id);
+
+/** Returns all pages with the current active page's live state flushed in. */
+export const selectAllPages = (state: WhiteboardStore): PageData[] =>
+  state.pages.map((p, i) =>
+    i === state.currentPageIndex
+      ? { ...p, elements: state.elements, connections: state.connections, groups: state.groups }
+      : p
+  );

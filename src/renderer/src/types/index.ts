@@ -175,6 +175,15 @@ export interface ElementGroup {
   childIds: string[];
 }
 
+/** A single virtual whiteboard page within a file */
+export interface PageData {
+  id: string;
+  label: string;
+  elements: WhiteboardElement[];
+  connections: Connection[];
+  groups: ElementGroup[];
+}
+
 // ─── History Snapshot ────────────────────────────────────────────────────────
 
 export interface HistorySnapshot {
