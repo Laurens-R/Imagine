@@ -1,0 +1,154 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: #1e1e36;
+  border: 1px solid $toolbar-border;
+  border-radius: 10px;
+  padding: 24px 28px;
+  width: 680px;
+  max-width: 94vw;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $toolbar-text;
+  margin: 0;
+  font-family: $font-system;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $toolbar-icon;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+
+  &:hover {
+    color: $toolbar-text;
+  }
+}
+
+// ── Scrollable body ───────────────────────────────────────────────────────────
+
+.body {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $toolbar-border; border-radius: 3px; }
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+.section {
+  margin-bottom: 22px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.sectionTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $toolbar-active;
+  font-family: $font-system;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid $toolbar-border;
+}
+
+// ── Shortcut rows ─────────────────────────────────────────────────────────────
+
+.row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 8px 16px;
+  align-items: start;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding-top: 1px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 11px;
+  color: $toolbar-text;
+  white-space: nowrap;
+}
+
+.plus {
+  font-size: 11px;
+  color: $toolbar-icon;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 600;
+  color: $toolbar-text;
+  font-family: $font-system;
+}
+
+.desc {
+  font-size: 11px;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  line-height: 1.5;
+}

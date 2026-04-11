@@ -72,6 +72,9 @@ interface WhiteboardState {
   // Pages
   pages: PageData[];
   currentPageIndex: number;
+
+  // UI overlay flags
+  helpOpen: boolean;
 }
 
 interface WhiteboardActions {
@@ -135,6 +138,9 @@ interface WhiteboardActions {
   setGridEnabled: (enabled: boolean) => void;
   setGridSize: (size: number) => void;
 
+  // UI overlay
+  setHelpOpen: (open: boolean) => void;
+
   // Alignment
   alignSelected: (op: 'left' | 'right' | 'center-h' | 'top' | 'bottom' | 'center-v') => void;
   distributeSelected: (axis: 'horizontal' | 'vertical') => void;
@@ -189,6 +195,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     groups: [],
     pages: [{ id: uuidv4(), label: 'Page 1', elements: [], connections: [], groups: [] }],
     currentPageIndex: 0,
+    helpOpen: false,
     selectedId: null,
     selectedIds: [],
     selectedConnectionId: null,
@@ -540,6 +547,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
 
     setGridEnabled: (enabled) => set((state) => { state.gridEnabled = enabled; }),
     setGridSize: (size) => set((state) => { state.gridSize = size; }),
+    setHelpOpen: (open) => set((state) => { state.helpOpen = open; }),
 
     // ── Alignment ─────────────────────────────────────────────────────────────
     alignSelected: (op) => {

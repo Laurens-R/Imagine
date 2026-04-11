@@ -362,6 +362,21 @@ export const Whiteboard: React.FC<{
           handlePaste();
         }
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          const { elements: els, groups: grps } = useWhiteboardStore.getState();
+          // Select top-level items: group IDs for grouped elements, loose element IDs for ungrouped
+          const groupedChildIds = new Set(grps.flatMap((g) => g.childIds));
+          const topLevelIds = [
+            ...grps.map((g) => g.id),
+            ...els.filter((el) => !groupedChildIds.has(el.id)).map((el) => el.id),
+          ];
+          setSelectedId(null);
+          setSelectedIds(topLevelIds);
+        }
+      }
       if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
         const active = document.activeElement;
         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
@@ -372,6 +387,48 @@ export const Whiteboard: React.FC<{
         const active = document.activeElement;
         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
           setTool('line');
+        }
+      }
+      if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('select');
+        }
+      }
+      if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('sharpie');
+        }
+      }
+      if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('sticky-note');
+        }
+      }
+      if ((e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('image');
+        }
+      }
+      if ((e.key === 't' || e.key === 'T') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('text-box');
+        }
+      }
+      if ((e.key === 'd' || e.key === 'D') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('shape');
+        }
+      }
+      if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          setTool('connection');
         }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -459,6 +516,7 @@ export const Whiteboard: React.FC<{
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
+      if (useWhiteboardStore.getState().helpOpen) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 0.93;
       const newZoom = Math.min(Math.max(zoom * factor, 0.15), 4);

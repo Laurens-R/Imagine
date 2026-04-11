@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWhiteboardStore } from '../../store/whiteboardStore';
 import type { ToolType, ShapeType, FontFamily, StickyColor } from '../../types';
 import { FONT_OPTIONS, STICKY_COLORS, BRUSH_COLORS } from '../../types';
 import styles from './Toolbar.module.scss';
+import { HelpDialog } from '../HelpDialog/HelpDialog';
 
 // ── Icon components ─────────────────────────────────────────────────────────
 
@@ -178,6 +179,13 @@ const IconResetRotation = () => (
     <line x1="10" y1="10" x2="10" y2="6" strokeWidth={2} />
   </svg>
 );
+const IconHelp = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+  </svg>
+);
 const IconTray = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="14" rx="2" />
@@ -273,10 +281,18 @@ export const Toolbar: React.FC = () => {
     groupSelected,
     ungroupSelected,
     resetRotation,
+    helpOpen,
+    setHelpOpen,
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Open shape panel when the shape tool is activated via keyboard shortcut
+  useEffect(() => {
+    if (tool === 'shape') setShapePanelOpen(true);
+    else setShapePanelOpen(false);
+  }, [tool]);
 
   const handleToolClick = (t: ToolType) => {
     if (t === 'shape') {
@@ -571,15 +587,18 @@ export const Toolbar: React.FC = () => {
             <IconTray />
           </button>
 
+          <div className={styles.divider} />
+
           <button
-            className={`${styles.actionBtn} ${confirmClear ? styles.danger : ''}`}
-            onClick={handleClearAll}
-            title={confirmClear ? 'Click again to confirm clear' : 'Clear all'}
+            className={styles.actionBtn}
+            onClick={() => setHelpOpen(true)}
+            title="Keyboard shortcuts"
           >
-            <IconTrash />
+            <IconHelp />
           </button>
         </div>
       </div>
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
     </div>
   );
 };
