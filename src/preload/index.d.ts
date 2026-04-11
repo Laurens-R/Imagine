@@ -13,7 +13,7 @@ interface WhiteboardAPI {
   deleteTemplate: (name: string) => Promise<Record<string, never>>;
   hideToTray: () => void;
   saveBoardSync: (data: string, filePath: string) => { ok: boolean };
-  getSettings: () => Promise<{ anthropicApiKey: string; aiModel: string }>;
+  getSettings: () => Promise<{ anthropicApiKey: string; aiModel: string; aiMaxTokens?: number; defaultCreativeMode?: boolean }>;
   setSettings: (settings: Record<string, unknown>) => Promise<Record<string, never>>;
   callAI: (prompt: string, board: unknown) => Promise<{ response?: Record<string, unknown>; error?: string }>;
 }

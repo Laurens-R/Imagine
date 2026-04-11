@@ -37,7 +37,8 @@ export const Whiteboard: React.FC<{
   onCloseExportDialog?: () => void;
   onAIAssistant?: () => void;
   onSettings?: () => void;
-}> = ({ showExportDialog = false, onCloseExportDialog, onAIAssistant, onSettings }) => {
+  settingsVersion?: number;
+}> = ({ showExportDialog = false, onCloseExportDialog, onAIAssistant, onSettings, settingsVersion }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -452,7 +453,7 @@ export const Whiteboard: React.FC<{
         )}
       </div>
 
-      <Toolbar onAIAssistant={onAIAssistant} />
+      <Toolbar onAIAssistant={onAIAssistant} settingsVersion={settingsVersion} />
 
       {/* Hidden file input for image insertion */}
       <input

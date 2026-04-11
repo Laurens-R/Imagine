@@ -290,9 +290,15 @@ const SHAPE_OPTIONS: { value: ShapeType; label: string; icon: React.ReactNode }[
 
 interface ToolbarProps {
   onAIAssistant?: () => void;
+  settingsVersion?: number;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion }) => {
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    window.whiteboardApi.getSettings().then((s) => setHasApiKey(!!s.anthropicApiKey));
+  }, [settingsVersion]);
   const tool = useWhiteboardStore((s) => s.tool);
   const color = useWhiteboardStore((s) => s.color);
   const strokeWidth = useWhiteboardStore((s) => s.strokeWidth);
@@ -431,7 +437,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant }) => {
           ))}
         </div>
 
-        {onAIAssistant && (
+        {onAIAssistant && hasApiKey && (
           <button
             className={styles.actionBtn}
             onClick={onAIAssistant}

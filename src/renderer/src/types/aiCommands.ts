@@ -24,4 +24,5 @@ export interface AppSettings {
   anthropicApiKey: string;
   aiModel: string;
   aiMaxTokens?: number;
+  defaultCreativeMode?: boolean;
 }

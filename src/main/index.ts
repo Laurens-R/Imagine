@@ -243,7 +243,7 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
 
   ipcMain.handle('ai:call', async (_e, prompt: string, board: unknown) => {
     try {
-      let settings: { anthropicApiKey?: string; aiModel?: string; aiMaxTokens?: number } = {};
+      let settings: { anthropicApiKey?: string; aiModel?: string; aiMaxTokens?: number; defaultCreativeMode?: boolean } = {};
       try {
         if (existsSync(settingsPath)) {
           settings = JSON.parse(await readFile(settingsPath, 'utf8'));

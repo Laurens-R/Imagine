@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Whiteboard } from './components/Whiteboard/Whiteboard';
 import { TitleBar } from './components/TitleBar/TitleBar';
 import { PageStrip } from './components/PageStrip/PageStrip';
@@ -16,10 +16,21 @@ const App: React.FC = () => {
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [settingsVersion, setSettingsVersion] = useState(0);
   const [showAIDialog, setShowAIDialog] = useState(false);
 
   const { elements, connections, clearAll, snapshot, setCurrentFile, loadBoard } =
     useWhiteboardStore();
+
+  // Apply default creative mode on first load (new board, no file)
+  useEffect(() => {
+    window.whiteboardApi.getSettings().then((s: { defaultCreativeMode?: boolean }) => {
+      if (s.defaultCreativeMode) {
+        useWhiteboardStore.getState().setCreativeMode(true);
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleNewConfirm = async (templateName: string | null) => {
     setShowNewDialog(false);
@@ -74,6 +85,7 @@ const App: React.FC = () => {
         onCloseExportDialog={() => setShowExportDialog(false)}
         onAIAssistant={() => setShowAIDialog(true)}
         onSettings={() => setShowSettingsDialog(true)}
+        settingsVersion={settingsVersion}
       />
       <PageStrip />
       {showNewDialog && (
@@ -90,7 +102,10 @@ const App: React.FC = () => {
         />
       )}
       {showSettingsDialog && (
-        <SettingsDialog onClose={() => setShowSettingsDialog(false)} />
+        <SettingsDialog
+          onClose={() => setShowSettingsDialog(false)}
+          onSaved={() => setSettingsVersion((v) => v + 1)}
+        />
       )}
       {showAIDialog && (
         <AIAssistant

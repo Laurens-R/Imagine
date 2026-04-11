@@ -10,12 +10,14 @@ const AI_MODELS = [
 
 interface SettingsDialogProps {
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
+export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose, onSaved }) => {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-haiku-4-5');
   const [maxTokens, setMaxTokens] = useState(8192);
+  const [defaultCreativeMode, setDefaultCreativeMode] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,6 +27,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
       setApiKey(s.anthropicApiKey ?? '');
       setModel(s.aiModel ?? 'claude-haiku-4-5');
       setMaxTokens(s.aiMaxTokens ?? 8192);
+      setDefaultCreativeMode(s.defaultCreativeMode ?? false);
       setLoading(false);
     });
 
@@ -36,10 +39,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
   }, [onClose]);
 
   const handleSave = async () => {
-    const settings: AppSettings = { anthropicApiKey: apiKey.trim(), aiModel: model, aiMaxTokens: maxTokens };
-    await window.whiteboardApi.setSettings(settings);
+    const settings: AppSettings = { anthropicApiKey: apiKey.trim(), aiModel: model, aiMaxTokens: maxTokens, defaultCreativeMode };
+    await window.whiteboardApi.setSettings(settings as unknown as Record<string, unknown>);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    onSaved?.();
   };
 
   return (
@@ -56,6 +60,22 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
           </div>
         ) : (
           <>
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>General</h3>
+              <div className={styles.field}>
+                <label className={styles.label}>Default board mode</label>
+                <p className={styles.hint}>Mode applied when starting a new blank board. Does not affect boards loaded from file.</p>
+                <select
+                  className={styles.select}
+                  value={defaultCreativeMode ? 'creative' : 'light'}
+                  onChange={(e) => setDefaultCreativeMode(e.target.value === 'creative')}
+                >
+                  <option value="light">Light (white canvas)</option>
+                  <option value="creative">Creative (dark canvas)</option>
+                </select>
+              </div>
+            </div>
+
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>AI Assistant</h3>
 
