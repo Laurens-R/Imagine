@@ -12,6 +12,7 @@ interface WhiteboardAPI {
   loadTemplate: (name: string) => Promise<{ data: string }>;
   deleteTemplate: (name: string) => Promise<Record<string, never>>;
   hideToTray: () => void;
+  saveBoardSync: (data: string, filePath: string) => { ok: boolean };
 }
 
 declare global {

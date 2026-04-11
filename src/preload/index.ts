@@ -16,6 +16,7 @@ const whiteboardApi = {
   loadTemplate: (name: string) => ipcRenderer.invoke('templates:load', name),
   deleteTemplate: (name: string) => ipcRenderer.invoke('templates:delete', name),
   hideToTray: () => ipcRenderer.send('win:hide-to-tray'),
+  saveBoardSync: (data: string, filePath: string) => ipcRenderer.sendSync('board:save-sync', data, filePath),
 };
 
 if (process.contextIsolated) {

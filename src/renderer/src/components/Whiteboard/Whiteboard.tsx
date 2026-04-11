@@ -97,6 +97,7 @@ export const Whiteboard: React.FC<{
   const canvasHeight = useWhiteboardStore((s) => s.canvasHeight);
   const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
   const gridSize = useWhiteboardStore((s) => s.gridSize);
+  const creativeMode = useWhiteboardStore((s) => s.creativeMode);
   const groups = useWhiteboardStore((s) => s.groups);
 
   const {
@@ -316,7 +317,7 @@ export const Whiteboard: React.FC<{
         e.preventDefault();
         const storeState = useWhiteboardStore.getState();
         const allPages = selectAllPages(storeState);
-        const data = JSON.stringify({ version: 2, pages: allPages }, null, 2);
+        const data = JSON.stringify({ version: 2, pages: allPages, creativeMode: storeState.creativeMode }, null, 2);
         window.whiteboardApi.saveBoard(data, storeState.currentFile ?? undefined).then((r) => {
           if (!r.canceled && r.filePath) setCurrentFile(r.filePath);
         });
@@ -328,9 +329,9 @@ export const Whiteboard: React.FC<{
             try {
               const parsed = JSON.parse(r.data);
               if (parsed.pages) {
-                loadBoard([], [], r.filePath, [], parsed.pages);
+                loadBoard([], [], r.filePath, [], parsed.pages, parsed.creativeMode ?? false);
               } else {
-                loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath, parsed.groups ?? []);
+                loadBoard(parsed.elements ?? [], parsed.connections ?? [], r.filePath, parsed.groups ?? [], undefined, false);
               }
             } catch { /* ignore */ }
           }
@@ -509,6 +510,52 @@ export const Whiteboard: React.FC<{
       window.removeEventListener('drop', prevent);
     };
   }, []);
+
+  // ── Dirty tracking ────────────────────────────────────────────────────────
+  const isDirtyRef = useRef(false);
+  useEffect(() => {
+    if (currentFile) isDirtyRef.current = true;
+  }, [elements, connections, groups]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Save on close (beforeunload) ──────────────────────────────────────────
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const storeState = useWhiteboardStore.getState();
+      if (!storeState.currentFile || !isDirtyRef.current) return;
+      const allPages = selectAllPages(storeState);
+      const data = JSON.stringify({ version: 2, pages: allPages, creativeMode: storeState.creativeMode }, null, 2);
+      window.whiteboardApi.saveBoardSync(data, storeState.currentFile);
+      isDirtyRef.current = false;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // ── Autosave (5 s debounce after any change, only when file is known) ──────
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRef = useRef(false);
+  useEffect(() => {
+    if (!currentFile) return; // never autosave unsaved files
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(async () => {
+      if (isSavingRef.current) return;
+      isSavingRef.current = true;
+      try {
+        const storeState = useWhiteboardStore.getState();
+        if (!storeState.currentFile) return;
+        const allPages = selectAllPages(storeState);
+        const data = JSON.stringify({ version: 2, pages: allPages, creativeMode: storeState.creativeMode }, null, 2);
+        await window.whiteboardApi.saveBoard(data, storeState.currentFile);
+        isDirtyRef.current = false;
+      } finally {
+        isSavingRef.current = false;
+      }
+    }, 5_000);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elements, connections, groups, currentFile]);
 
   // ── Wheel zoom ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1033,7 +1080,7 @@ export const Whiteboard: React.FC<{
   return (
     <div
       ref={containerRef}
-      className={styles.whiteboard}
+      className={`${styles.whiteboard}${creativeMode ? ` ${styles.creative}` : ''}`}
       style={{ cursor: getCursor() }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -1082,7 +1129,7 @@ export const Whiteboard: React.FC<{
             <>
               <defs>
                 <pattern id="whiteboard-grid" x="0" y="0" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
-                  <circle cx={gridSize / 2} cy={gridSize / 2} r={1} fill="rgba(150,140,200,0.25)" />
+                  <circle cx={gridSize / 2} cy={gridSize / 2} r={1} fill={creativeMode ? 'rgba(180,170,255,0.2)' : 'rgba(150,140,200,0.25)'} />
                 </pattern>
               </defs>
               <rect x={0} y={0} width={canvasWidth} height={canvasHeight} fill="url(#whiteboard-grid)" />

@@ -186,6 +186,14 @@ const IconHelp = () => (
     <circle cx="12" cy="17" r="0.5" fill="currentColor" />
   </svg>
 );
+const IconCreative = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3a9 9 0 0 0 0 18" />
+    <path d="M12 3a9 9 0 0 1 0 18" strokeDasharray="3 2" />
+    <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.15" />
+    <path d="M12 8v1M12 15v1M8 12h1M15 12h1" />
+  </svg>
+);
 const IconTray = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="14" rx="2" />
@@ -283,6 +291,8 @@ export const Toolbar: React.FC = () => {
     resetRotation,
     helpOpen,
     setHelpOpen,
+    creativeMode,
+    setCreativeMode,
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
@@ -547,6 +557,17 @@ export const Toolbar: React.FC = () => {
             title="Redo (Ctrl+Y)"
           >
             <IconRedo />
+          </button>
+
+          <div className={styles.divider} />
+
+          {/* Creative Board toggle */}
+          <button
+            className={`${styles.actionBtn} ${creativeMode ? styles.activeBtn : ''}`}
+            onClick={() => setCreativeMode(!creativeMode)}
+            title={creativeMode ? 'Creative Board: ON' : 'Creative Board: OFF'}
+          >
+            <IconCreative />
           </button>
 
           <div className={styles.divider} />

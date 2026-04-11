@@ -75,6 +75,9 @@ interface WhiteboardState {
 
   // UI overlay flags
   helpOpen: boolean;
+
+  // Visual mode
+  creativeMode: boolean;
 }
 
 interface WhiteboardActions {
@@ -125,7 +128,7 @@ interface WhiteboardActions {
   clearAll: () => void;
 
   // File
-  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string | null, groups?: ElementGroup[], pages?: PageData[]) => void;
+  loadBoard: (elements: WhiteboardElement[], connections: Connection[], filePath: string | null, groups?: ElementGroup[], pages?: PageData[], creativeMode?: boolean) => void;
   setCurrentFile: (filePath: string | null) => void;
 
   // Pages
@@ -140,6 +143,9 @@ interface WhiteboardActions {
 
   // UI overlay
   setHelpOpen: (open: boolean) => void;
+
+  // Visual mode
+  setCreativeMode: (enabled: boolean) => void;
 
   // Alignment
   alignSelected: (op: 'left' | 'right' | 'center-h' | 'top' | 'bottom' | 'center-v') => void;
@@ -196,6 +202,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     pages: [{ id: uuidv4(), label: 'Page 1', elements: [], connections: [], groups: [] }],
     currentPageIndex: 0,
     helpOpen: false,
+    creativeMode: false,
     selectedId: null,
     selectedIds: [],
     selectedConnectionId: null,
@@ -432,7 +439,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.selectedIds = [];
       }),
 
-    loadBoard: (elements, connections, filePath, groups, pages) =>
+    loadBoard: (elements, connections, filePath, groups, pages, creativeMode) =>
       set((state) => {
         if (pages && pages.length > 0) {
           state.pages = JSON.parse(JSON.stringify(pages));
@@ -455,6 +462,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.currentFile = filePath;
         state.zoom = 1;
         state.pan = { x: 0, y: 0 };
+        state.creativeMode = creativeMode ?? false;
+        state.color = (creativeMode ?? false) ? '#e8e6ff' : '#1a1a1a';
       }),
 
     setCurrentFile: (filePath) =>
@@ -548,6 +557,10 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     setGridEnabled: (enabled) => set((state) => { state.gridEnabled = enabled; }),
     setGridSize: (size) => set((state) => { state.gridSize = size; }),
     setHelpOpen: (open) => set((state) => { state.helpOpen = open; }),
+    setCreativeMode: (enabled) => set((state) => {
+      state.creativeMode = enabled;
+      state.color = enabled ? '#e8e6ff' : '#1a1a1a';
+    }),
 
     // ── Alignment ─────────────────────────────────────────────────────────────
     alignSelected: (op) => {

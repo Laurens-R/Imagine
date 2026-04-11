@@ -11,13 +11,13 @@
 
   &.selected {
     border-color: $selection-color;
-    background: rgba(255, 255, 255, 0.6);
+    background: transparent;
   }
 
   &.editing {
     border-color: rgba(124, 106, 255, 0.5);
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    background: transparent;
+    box-shadow: none;
   }
 
   &.connectable {

@@ -5,6 +5,11 @@
   flex: 1;
   overflow: hidden;
   background-color: #fafaf8;
+  transition: background-color 0.3s ease;
+
+  &.creative {
+    background-color: #1e1e2e;
+  }
 }
 
 .viewport {

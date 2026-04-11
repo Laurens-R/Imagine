@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, globalShortcut } from 'electron';
 import { join } from 'path';
 import { readFile, writeFile, readdir, unlink, mkdir } from 'fs/promises';
+import { writeFileSync as writeFileSyncNode } from 'fs';
 import { deflateSync } from 'zlib';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
@@ -95,6 +96,16 @@ function createWindow(): void {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
   ipcMain.on('win:close', () => mainWindow.close());
+
+  // Synchronous save used by the beforeunload handler so data is flushed before the window closes
+  ipcMain.on('board:save-sync', (event, data: string, filePath: string) => {
+    try {
+      writeFileSyncNode(filePath, data, 'utf8');
+      event.returnValue = { ok: true };
+    } catch {
+      event.returnValue = { ok: false };
+    }
+  });
   ipcMain.on('win:hide-to-tray', () => mainWindow.hide());
 
   // ── File IPC ─────────────────────────────────────────────────────────────
