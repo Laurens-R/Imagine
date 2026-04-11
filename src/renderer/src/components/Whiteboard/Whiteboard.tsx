@@ -266,6 +266,7 @@ export const Whiteboard: React.FC<{
   return (
     <div
       ref={containerRef}
+      data-whiteboard-container
       className={`${styles.whiteboard}${creativeMode ? ` ${styles.creative}` : ''}`}
       style={{ cursor: getCursor() }}
       onMouseDown={handleMouseDown}

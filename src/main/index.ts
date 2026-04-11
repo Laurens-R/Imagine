@@ -173,7 +173,8 @@ function createWindow(): void {
   const AI_SYSTEM_PROMPT = `You are an AI assistant for "Imagine", a creative whiteboard desktop application.
 
 ## Whiteboard Schema
-Elements: id(str), type, x, y (canvas coords 0-6000/0-4000), zIndex(int), rotation(deg)
+All coordinates are **absolute canvas coordinates**. x,y is the **top-left corner** of each element (not the centre).
+Elements: id(str), type, x, y (canvas coords), zIndex(int), rotation(deg)
 - sticky-note: width, height, text, backgroundColor, font, fontSize
   backgroundColor options: #fef08a #f9a8d4 #93c5fd #86efac #fcd34d #c4b5fd #ffffff
   font: Caveat|Indie Flower|Kalam|Patrick Hand|Permanent Marker
@@ -207,28 +208,31 @@ Return ONLY valid JSON (no markdown fences, no prose outside JSON):
 - Generation prompts: use targetPage "new" to preserve existing content
 - Organisation prompts: use targetPage "current" with move_element/group_elements
 
-### SCALE — this is critical
-The canvas is 6000×4000 px but the user's window shows roughly 1300×750 px at zoom 1.0.
+### COORDINATES — read carefully
+The canvas is 6000×4000 px. The board snapshot includes a "viewportCentre" field showing the **absolute canvas coordinate** at the centre of the user's screen right now.
+
+**ALL coordinates — for both move_element and add_element — are absolute canvas coordinates.**
+
+For **organisation tasks** (rearranging/grouping existing elements):
+- Read each element's x, y from the board state — those are the top-left corners
+- Use those same absolute coordinates when repositioning them
+- When adding container shapes or labels around existing elements, compute the bounding box from their x, y, width, height and place the container there
+- To add a label above an element at (ex, ey), place the text-box at approximately (ex, ey - 60)
+- To add a container shape behind a group, set x = minX - padding, y = minY - padding, width = (maxX - minX) + 2*padding, height = (maxY - minY) + 2*padding
+
+For **generation tasks** (creating new content from scratch):
+- Centre the new layout on the "viewportCentre" coordinates from the board snapshot
+- Spread elements around that centre point, e.g. viewportCentre.x ± 220, viewportCentre.y ± 100
+
+### SCALE
 A typical readable layout for 6-10 elements fits in a 900×600 px area.
 
-### COORDINATE ORIGIN for new elements
-When adding new elements (add_element commands), use **(0, 0) as the centre/anchor**.
-The app will automatically translate all new-element coordinates to the user's current viewport.
-So: put your layout centred around (0, 0) — e.g. x range roughly -450 to +450, y range -300 to +300.
-DO NOT use large absolute canvas coordinates (like 3000, 2000) for new elements.
-For move_element commands (repositioning existing elements), use the absolute coordinates shown in the board state.
-
-Element reference sizes:
+Element reference sizes (x,y = top-left corner):
 - sticky-note: 200×180 px  → gap between stickies: 20-30 px
 - text-box title: 260×50 px
 - shape node: 120×80 px  → gap between shapes in a flow: 40-60 px
 - horizontal row of stickies: x steps of ~220 px (width + 20 gap)
 - vertical column: y steps of ~200 px (height + 20 gap)
-- flow diagram (shapes + arrows): x steps of ~200 px, y steps of ~140 px
-
-Example 3-column sticky layout centred at origin:
-  row0: (-220, -100), (0, -100), (220, -100)
-  row1: (-220,  100), (0,  100), (220,  100)
 
 NEVER space new elements more than 300 px apart unless the user explicitly asks for a wide layout.
 
@@ -239,7 +243,7 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
 
   ipcMain.handle('ai:call', async (_e, prompt: string, board: unknown) => {
     try {
-      let settings: { anthropicApiKey?: string; aiModel?: string } = {};
+      let settings: { anthropicApiKey?: string; aiModel?: string; aiMaxTokens?: number } = {};
       try {
         if (existsSync(settingsPath)) {
           settings = JSON.parse(await readFile(settingsPath, 'utf8'));
@@ -250,6 +254,7 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
       if (!apiKey) return { error: 'No Anthropic API key configured. Go to File → Settings to add one.' };
 
       const model = settings.aiModel ?? 'claude-haiku-4-5';
+      const maxTokens = typeof settings.aiMaxTokens === 'number' ? Math.min(32000, Math.max(1000, settings.aiMaxTokens)) : 8192;
 
       const userMessage = `Current whiteboard state:\n${JSON.stringify(board, null, 2)}\n\nUser request: ${prompt}`;
 
@@ -262,7 +267,7 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
         },
         body: JSON.stringify({
           model,
-          max_tokens: 4096,
+          max_tokens: maxTokens,
           system: AI_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userMessage }],
         }),
@@ -275,7 +280,10 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
         return { error: msg };
       }
 
-      const data = await res.json() as { content: { type: string; text: string }[] };
+      const data = await res.json() as { content: { type: string; text: string }[]; stop_reason?: string };
+      if (data.stop_reason === 'max_tokens') {
+        return { error: 'The AI response was too long and was cut off. Try a simpler prompt or work with fewer elements.' };
+      }
       const rawText = data.content?.find((c) => c.type === 'text')?.text ?? '';
 
       // Extract JSON — Claude may wrap in ```json ``` fences despite instructions

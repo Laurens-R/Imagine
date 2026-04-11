@@ -23,4 +23,5 @@ export interface AIResponse {
 export interface AppSettings {
   anthropicApiKey: string;
   aiModel: string;
+  aiMaxTokens?: number;
 }

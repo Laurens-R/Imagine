@@ -15,6 +15,7 @@ interface SettingsDialogProps {
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-haiku-4-5');
+  const [maxTokens, setMaxTokens] = useState(8192);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
     window.whiteboardApi.getSettings().then((s) => {
       setApiKey(s.anthropicApiKey ?? '');
       setModel(s.aiModel ?? 'claude-haiku-4-5');
+      setMaxTokens(s.aiMaxTokens ?? 8192);
       setLoading(false);
     });
 
@@ -34,7 +36,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
   }, [onClose]);
 
   const handleSave = async () => {
-    const settings: AppSettings = { anthropicApiKey: apiKey.trim(), aiModel: model };
+    const settings: AppSettings = { anthropicApiKey: apiKey.trim(), aiModel: model, aiMaxTokens: maxTokens };
     await window.whiteboardApi.setSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -87,6 +89,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onClose }) => {
                   {AI_MODELS.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
+                </select>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Response Length</label>
+                <p className={styles.hint}>Higher allows longer AI responses but costs more.</p>
+                <select className={styles.select} value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))}>
+                  <option value={4096}>Low (4096 tokens)</option>
+                  <option value={8192}>Medium (8192 tokens)</option>
+                  <option value={16000}>High (16000 tokens)</option>
                 </select>
               </div>
             </div>

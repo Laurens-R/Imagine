@@ -14,6 +14,8 @@ const EXAMPLE_PROMPTS = [
 ];
 
 // Build a compact board snapshot, stripping large data (drawing point arrays, image dataUrls)
+const MAX_TEXT_LEN = 300;
+
 function buildCompactBoard() {
   const state = useWhiteboardStore.getState();
   const elements = state.elements.map((el) => {
@@ -32,15 +34,22 @@ function buildCompactBoard() {
       const { dataUrl: _d, ...rest } = el as ImageElement;
       return rest;
     }
+    // Truncate long text fields to keep the snapshot compact
+    if ('text' in el && typeof el.text === 'string' && el.text.length > MAX_TEXT_LEN) {
+      return { ...el, text: el.text.slice(0, MAX_TEXT_LEN) + '…' };
+    }
     return el;
   });
+  const containerEl = document.querySelector('[data-whiteboard-container]');
+  const rect = containerEl?.getBoundingClientRect();
+  const halfW = rect ? rect.width  / 2 : window.innerWidth  / 2;
+  const halfH = rect ? rect.height / 2 : window.innerHeight / 2;
   return {
     canvasSize: { w: state.canvasWidth, h: state.canvasHeight },
-    // viewportCentre: the canvas coordinate currently at the centre of the screen.
-    // Place new content clustered around this point.
+    // viewportCentre: the canvas coordinate currently at the centre of the visible viewport.
     viewportCentre: {
-      x: Math.round((state.canvasWidth / 2 - state.pan.x) / state.zoom),
-      y: Math.round((state.canvasHeight / 2 - state.pan.y) / state.zoom),
+      x: Math.round((halfW - state.pan.x) / state.zoom),
+      y: Math.round((halfH - state.pan.y) / state.zoom),
     },
     elements,
     connections: state.connections,
@@ -59,7 +68,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onClose, onOpenSetting
   const [prompt, setPrompt] = useState('');
   const [phase, setPhase] = useState<Phase>('input');
   const [aiResponse, setAIResponse] = useState<AIResponse | null>(null);
-  const [viewportCentre, setViewportCentre] = useState<{ x: number; y: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,7 +92,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onClose, onOpenSetting
     setErrorMsg('');
     try {
       const board = buildCompactBoard();
-      setViewportCentre(board.viewportCentre);
       const result = await window.whiteboardApi.callAI(prompt.trim(), board);
       if (result.error) {
         setErrorMsg(result.error);
@@ -101,7 +108,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onClose, onOpenSetting
 
   const handleApply = () => {
     if (!aiResponse) return;
-    executeAIResponse(aiResponse, viewportCentre ?? undefined);
+    executeAIResponse(aiResponse);
     onClose();
   };
 
