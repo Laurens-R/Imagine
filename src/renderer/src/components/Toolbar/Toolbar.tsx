@@ -580,10 +580,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion
                   className={styles.select}
                   style={{ fontFamily: font }}
                 >
-                  {FONT_OPTIONS.map((f) => (
-                    <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                      {f.label}
-                    </option>
+                  {(['Handwriting', 'Business'] as const).map((group) => (
+                    <optgroup key={group} label={group}>
+                      {FONT_OPTIONS.filter((f) => f.group === group).map((f) => (
+                        <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

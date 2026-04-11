@@ -25,11 +25,19 @@ export type ShapeType =
   | 'arrow';
 
 export type FontFamily =
+  // Handwriting / sketch fonts
   | 'Caveat'
   | 'Indie Flower'
   | 'Kalam'
   | 'Patrick Hand'
-  | 'Permanent Marker';
+  | 'Permanent Marker'
+  // Business / professional fonts
+  | 'Inter'
+  | 'Roboto'
+  | 'Open Sans'
+  | 'Lato'
+  | 'Montserrat'
+  | 'Playfair Display';
 
 export type TextAlign = 'left' | 'center' | 'right';
 
@@ -215,12 +223,20 @@ export interface HistorySnapshot {
 
 // ─── Font Definitions ─────────────────────────────────────────────────────────
 
-export const FONT_OPTIONS: { value: FontFamily; label: string }[] = [
-  { value: 'Caveat', label: 'Caveat' },
-  { value: 'Indie Flower', label: 'Indie Flower' },
-  { value: 'Kalam', label: 'Kalam' },
-  { value: 'Patrick Hand', label: 'Patrick Hand' },
-  { value: 'Permanent Marker', label: 'Permanent Marker' }
+export const FONT_OPTIONS: { value: FontFamily; label: string; group?: string }[] = [
+  // Handwriting / sketch
+  { value: 'Caveat', label: 'Caveat', group: 'Handwriting' },
+  { value: 'Indie Flower', label: 'Indie Flower', group: 'Handwriting' },
+  { value: 'Kalam', label: 'Kalam', group: 'Handwriting' },
+  { value: 'Patrick Hand', label: 'Patrick Hand', group: 'Handwriting' },
+  { value: 'Permanent Marker', label: 'Permanent Marker', group: 'Handwriting' },
+  // Business / professional
+  { value: 'Inter', label: 'Inter', group: 'Business' },
+  { value: 'Roboto', label: 'Roboto', group: 'Business' },
+  { value: 'Open Sans', label: 'Open Sans', group: 'Business' },
+  { value: 'Lato', label: 'Lato', group: 'Business' },
+  { value: 'Montserrat', label: 'Montserrat', group: 'Business' },
+  { value: 'Playfair Display', label: 'Playfair Display', group: 'Business' }
 ];
 
 export const STICKY_COLORS: StickyColor[] = [

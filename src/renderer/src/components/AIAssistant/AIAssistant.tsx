@@ -102,7 +102,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onClose, onOpenSetting
         setErrorMsg(result.error);
         setPhase('error');
       } else {
-        setAIResponse(result.response!);
+        setAIResponse(result.response! as unknown as AIResponse);
         setPhase('result');
       }
     } catch (err) {

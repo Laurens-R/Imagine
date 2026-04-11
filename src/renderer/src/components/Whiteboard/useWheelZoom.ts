@@ -13,6 +13,9 @@ export function useWheelZoom(containerRef: RefObject<HTMLDivElement | null>) {
 
     const onWheel = (e: WheelEvent) => {
       if (useWhiteboardStore.getState().helpOpen) return;
+      // Let the event scroll any overlay panel (gallery, dialog, etc.) that has its own scrollbar
+      const target = e.target as Element | null;
+      if (target && target.closest('[data-scroll-overlay]')) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 0.93;
       const newZoom = Math.min(Math.max(zoom * factor, 0.15), 4);

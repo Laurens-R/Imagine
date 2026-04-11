@@ -11,7 +11,7 @@ export const IconGallery: React.FC = () => {
   const icons = ICONS_BY_CATEGORY[activeCategory] ?? [];
 
   return (
-    <div className={styles.gallery} onMouseDown={(e) => e.stopPropagation()}>
+    <div className={styles.gallery} data-scroll-overlay onMouseDown={(e) => e.stopPropagation()}>
       {/* Category tabs */}
       <div className={styles.tabs}>
         {ICON_CATEGORIES.map((cat) => (

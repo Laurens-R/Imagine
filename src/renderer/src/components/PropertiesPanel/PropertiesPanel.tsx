@@ -207,8 +207,12 @@ const StickyNoteProps: React.FC<{ el: StickyNoteElement }> = ({ el }) => {
         onFocus={snap}
         onChange={(e) => updateElement(el.id, { font: e.target.value as FontFamily })}
       >
-        {FONT_OPTIONS.map((f) => (
-          <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+        {(['Handwriting', 'Business'] as const).map((group) => (
+          <optgroup key={group} label={group}>
+            {FONT_OPTIONS.filter((f) => f.group === group).map((f) => (
+              <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+            ))}
+          </optgroup>
         ))}
       </select>
     </Row>
@@ -241,8 +245,12 @@ const TextBoxProps: React.FC<{ el: TextBoxElement }> = ({ el }) => {
         onFocus={snap}
         onChange={(e) => updateElement(el.id, { font: e.target.value as FontFamily })}
       >
-        {FONT_OPTIONS.map((f) => (
-          <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+        {(['Handwriting', 'Business'] as const).map((group) => (
+          <optgroup key={group} label={group}>
+            {FONT_OPTIONS.filter((f) => f.group === group).map((f) => (
+              <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+            ))}
+          </optgroup>
         ))}
       </select>
     </Row>
