@@ -10,7 +10,8 @@
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux"
+    "build:linux": "npm run build && electron-builder --linux",
+    "icons:gen": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -33,6 +34,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sass": "^1.77.6",
+    "sharp": "^0.34.5",
     "typescript": "^5.5.2",
     "vite": "^5.3.1"
   },
@@ -47,12 +49,15 @@
       "resources/**/*"
     ],
     "win": {
+      "icon": "resources/icon.ico",
       "target": "nsis"
     },
     "mac": {
+      "icon": "resources/icon.png",
       "target": "dmg"
     },
     "linux": {
+      "icon": "resources/icon.png",
       "target": "AppImage"
     }
   }

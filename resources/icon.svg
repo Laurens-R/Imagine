@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c6aff"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <clipPath id="circle-clip">
+      <circle cx="128" cy="128" r="120"/>
+    </clipPath>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="url(#bg)"/>
+  <!-- Subtle inner glow ring -->
+  <circle cx="128" cy="128" r="108" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="none"/>
+  <!-- Wavy brush stroke — the core logo mark -->
+  <path d="M 60 185
+             Q 80 90  100 128
+             Q 120 166 128 128
+             Q 136 90  156 128
+             Q 176 166 196 72"
+        stroke="white"
+        stroke-width="14"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+        opacity="0.95"/>
+  <!-- Small dot accent at stroke start -->
+  <circle cx="60" cy="185" r="8" fill="white" opacity="0.7"/>
+</svg>
