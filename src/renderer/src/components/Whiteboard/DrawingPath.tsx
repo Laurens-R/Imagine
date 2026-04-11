@@ -10,7 +10,7 @@ export interface DrawingPathProps {
   tool: string;
   zoom: number;
   pan: { x: number; y: number };
-  onSelect: () => void;
+  onSelect: (ctrlKey?: boolean) => void;
   onUpdate: (updates: Partial<WhiteboardElement>) => void;
 }
 
@@ -43,7 +43,7 @@ export const DrawingPath: React.FC<DrawingPathProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool !== 'select') return;
     e.stopPropagation();
-    onSelect();
+    onSelect(e.ctrlKey);
     const origPts = element.points.slice() as [number, number, number][];
     dragRef.current = { mx: e.clientX, my: e.clientY, points: origPts };
     const onMove = (ev: MouseEvent) => {

@@ -35,7 +35,9 @@ import styles from './Whiteboard.module.scss';
 export const Whiteboard: React.FC<{
   showExportDialog?: boolean;
   onCloseExportDialog?: () => void;
-}> = ({ showExportDialog = false, onCloseExportDialog }) => {
+  onAIAssistant?: () => void;
+  onSettings?: () => void;
+}> = ({ showExportDialog = false, onCloseExportDialog, onAIAssistant, onSettings }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -125,13 +127,27 @@ export const Whiteboard: React.FC<{
 
   // ── Element click (promotes to group if applicable) ────────────────────────
   const handleElementClick = useCallback(
-    (elementId: string) => {
+    (elementId: string, ctrlKey?: boolean) => {
       if (tool !== 'select') return;
       const grp = groups.find((g) => g.childIds.includes(elementId));
-      if (grp) setSelectedIds([grp.id]);
-      else setSelectedId(elementId);
+      const targetId = grp ? grp.id : elementId;
+      if (!ctrlKey) {
+        if (grp) setSelectedIds([grp.id]);
+        else setSelectedId(elementId);
+        return;
+      }
+      // Ctrl+click: toggle targetId in multi-selection
+      const current = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+      if (current.includes(targetId)) {
+        const next = current.filter((id) => id !== targetId);
+        if (next.length === 1) setSelectedId(next[0]);
+        else if (next.length === 0) setSelectedId(null);
+        else setSelectedIds(next);
+      } else {
+        setSelectedIds([...current, targetId]);
+      }
     },
-    [tool, groups, setSelectedId, setSelectedIds]
+    [tool, groups, selectedId, selectedIds, setSelectedId, setSelectedIds]
   );
 
   // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -321,7 +337,7 @@ export const Whiteboard: React.FC<{
               tool={tool}
               zoom={zoom}
               pan={pan}
-              onSelect={() => handleElementClick(el.id)}
+              onSelect={(ctrlKey) => handleElementClick(el.id, ctrlKey)}
               onUpdate={(updates) => updateElement(el.id, updates as Partial<WhiteboardElement>)}
             />
           ))}
@@ -342,7 +358,7 @@ export const Whiteboard: React.FC<{
               element={el as any}
               isSelected={selectedElementIds.has(el.id)}
               tool={tool}
-              onSelect={() => handleElementClick(el.id)}
+              onSelect={(ctrlKey) => handleElementClick(el.id, ctrlKey)}
               onUpdate={(updates) => updateElement(el.id, updates)}
               {...makeConnectionHandlers(el)}
             />
@@ -358,7 +374,7 @@ export const Whiteboard: React.FC<{
               element={el}
               isSelected={selectedElementIds.has(el.id)}
               tool={tool}
-              onSelect={() => handleElementClick(el.id)}
+              onSelect={(ctrlKey) => handleElementClick(el.id, ctrlKey)}
               onUpdate={(updates) => updateElement(el.id, updates)}
             />
           ))}
@@ -401,7 +417,7 @@ export const Whiteboard: React.FC<{
             const commonProps = {
               isSelected: selectedElementIds.has(el.id),
               tool,
-              onSelect: () => handleElementClick(el.id),
+              onSelect: (ctrlKey?: boolean) => handleElementClick(el.id, ctrlKey),
               onUpdate: (updates: any) => updateElement(el.id, updates),
               onDelete: () => { snapshot(); removeElement(el.id); },
               ...connHandlers,
@@ -435,7 +451,7 @@ export const Whiteboard: React.FC<{
         )}
       </div>
 
-      <Toolbar />
+      <Toolbar onAIAssistant={onAIAssistant} />
 
       {/* Hidden file input for image insertion */}
       <input

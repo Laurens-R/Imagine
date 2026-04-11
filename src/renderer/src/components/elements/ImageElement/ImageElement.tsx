@@ -9,7 +9,7 @@ interface ImageElProps {
   element: ImageElement;
   isSelected: boolean;
   tool: string;
-  onSelect: () => void;
+  onSelect: (ctrlKey?: boolean) => void;
   onUpdate: (updates: Partial<ImageElement>) => void;
   onDelete: () => void;
   onStartConnection: () => void;
@@ -50,7 +50,7 @@ export const ImageEl: React.FC<ImageElProps> = ({
         return;
       }
       e.stopPropagation();
-      onSelect();
+      onSelect(e.ctrlKey);
       if (tool !== 'select') return;
 
       dragStart.current = { mx: e.clientX, my: e.clientY, ex: element.x, ey: element.y };

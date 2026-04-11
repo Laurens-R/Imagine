@@ -9,7 +9,7 @@ interface TextBoxProps {
   element: TextBoxElement;
   isSelected: boolean;
   tool: string;
-  onSelect: () => void;
+  onSelect: (ctrlKey?: boolean) => void;
   onUpdate: (updates: Partial<TextBoxElement>) => void;
   onDelete: () => void;
   onStartConnection: () => void;
@@ -65,7 +65,7 @@ export const TextBox: React.FC<TextBoxProps> = ({
         return;
       }
       e.stopPropagation();
-      onSelect();
+      onSelect(e.ctrlKey);
       if (tool !== 'select') return;
       dragStart.current = { mx: e.clientX, my: e.clientY, ex: element.x, ey: element.y };
 

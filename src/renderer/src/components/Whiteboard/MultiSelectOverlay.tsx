@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useWhiteboardStore } from '../../store/whiteboardStore';
 import { getElementBounds } from './whiteboardHelpers';
 import { snapVal } from '../../utils/snap';
@@ -13,6 +13,18 @@ export const MultiSelectOverlay: React.FC = () => {
   const groups = useWhiteboardStore((s) => s.groups);
   const elements = useWhiteboardStore((s) => s.elements);
   const tool = useWhiteboardStore((s) => s.tool);
+
+  const [ctrlDown, setCtrlDown] = useState(false);
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Control') setCtrlDown(true); };
+    const onUp   = (e: KeyboardEvent) => { if (e.key === 'Control') setCtrlDown(false); };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+    };
+  }, []);
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
   const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
@@ -180,6 +192,7 @@ export const MultiSelectOverlay: React.FC = () => {
         top:    multiSelectionRect.top,
         width:  multiSelectionRect.width,
         height: multiSelectionRect.height,
+        pointerEvents: ctrlDown ? 'none' : undefined,
       }}
       onMouseDown={(e) => {
         if ((e.target as Element) !== e.currentTarget) return;

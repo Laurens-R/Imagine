@@ -7,7 +7,7 @@ interface ArrowElProps {
   element: ArrowElement;
   isSelected: boolean;
   tool: string;
-  onSelect: () => void;
+  onSelect: (ctrlKey?: boolean) => void;
   onUpdate: (updates: Partial<ArrowElement>) => void;
 }
 
@@ -36,7 +36,7 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool !== 'select') return;
     e.stopPropagation();
-    onSelect();
+    onSelect(e.ctrlKey);
     dragStart.current = { mx: e.clientX, my: e.clientY, ex: x, ey: y, ex2: x2, ey2: y2 };
     const onMove = (ev: MouseEvent) => {
       if (!dragStart.current) return;

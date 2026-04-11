@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, globalShortcut } from 'electron';
 import { join } from 'path';
 import { readFile, writeFile, readdir, unlink, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
 import { writeFileSync as writeFileSyncNode } from 'fs';
 import { deflateSync } from 'zlib';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
@@ -150,9 +151,146 @@ function createWindow(): void {
     return { filePath: result.filePath };
   });
 
+  // ── Settings IPC ─────────────────────────────────────────────────────────
+  const settingsPath = join(app.getPath('userData'), 'settings.json');
+
+  ipcMain.handle('settings:get', async () => {
+    try {
+      if (!existsSync(settingsPath)) return { anthropicApiKey: '', aiModel: 'claude-haiku-4-5' };
+      const raw = await readFile(settingsPath, 'utf8');
+      return JSON.parse(raw);
+    } catch {
+      return { anthropicApiKey: '', aiModel: 'claude-haiku-4-5' };
+    }
+  });
+
+  ipcMain.handle('settings:set', async (_e, settings: Record<string, unknown>) => {
+    await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    return {};
+  });
+
+  // ── AI IPC ────────────────────────────────────────────────────────────────
+  const AI_SYSTEM_PROMPT = `You are an AI assistant for "Imagine", a creative whiteboard desktop application.
+
+## Whiteboard Schema
+Elements: id(str), type, x, y (canvas coords 0-6000/0-4000), zIndex(int), rotation(deg)
+- sticky-note: width, height, text, backgroundColor, font, fontSize
+  backgroundColor options: #fef08a #f9a8d4 #93c5fd #86efac #fcd34d #c4b5fd #ffffff
+  font: Caveat|Indie Flower|Kalam|Patrick Hand|Permanent Marker
+- text-box: width, height, text, color(hex), font, fontSize, bold(bool), italic(bool)
+- shape: width, height, shapeType(rectangle|square|circle|ellipse|triangle|diamond|star), fillColor, strokeColor, roughness(0-3), seed(int)
+- image: width, height, caption (dataUrl excluded)
+- arrow: x2, y2, color(hex), strokeWidth(int), showArrowhead(bool)
+- drawing: bounding x/y/width/height only
+Connections: {id, sourceId, targetId, label, color}
+Groups: {id, childIds[]}
+
+## Response
+Return ONLY valid JSON (no markdown fences, no prose outside JSON):
+{
+  "thinking": "brief reasoning (optional)",
+  "targetPage": "current"|"new",
+  "newPageLabel": "label if targetPage=new",
+  "commands": [
+    {"type":"move_element","id":"...","x":0,"y":0},
+    {"type":"update_element","id":"...","props":{...fields}},
+    {"type":"delete_element","id":"..."},
+    {"type":"add_element","element":{type,x,y,...fields}},
+    {"type":"group_elements","ids":["id1","id2"]},
+    {"type":"ungroup_elements","groupId":"..."},
+    {"type":"add_connection","sourceId":"...","targetId":"...","label":"","color":"#b22222"},
+    {"type":"delete_connection","id":"..."}
+  ]
+}
+
+## Guidelines
+- Generation prompts: use targetPage "new" to preserve existing content
+- Organisation prompts: use targetPage "current" with move_element/group_elements
+
+### SCALE — this is critical
+The canvas is 6000×4000 px but the user's window shows roughly 1300×750 px at zoom 1.0.
+A typical readable layout for 6-10 elements fits in a 900×600 px area.
+
+### COORDINATE ORIGIN for new elements
+When adding new elements (add_element commands), use **(0, 0) as the centre/anchor**.
+The app will automatically translate all new-element coordinates to the user's current viewport.
+So: put your layout centred around (0, 0) — e.g. x range roughly -450 to +450, y range -300 to +300.
+DO NOT use large absolute canvas coordinates (like 3000, 2000) for new elements.
+For move_element commands (repositioning existing elements), use the absolute coordinates shown in the board state.
+
+Element reference sizes:
+- sticky-note: 200×180 px  → gap between stickies: 20-30 px
+- text-box title: 260×50 px
+- shape node: 120×80 px  → gap between shapes in a flow: 40-60 px
+- horizontal row of stickies: x steps of ~220 px (width + 20 gap)
+- vertical column: y steps of ~200 px (height + 20 gap)
+- flow diagram (shapes + arrows): x steps of ~200 px, y steps of ~140 px
+
+Example 3-column sticky layout centred at origin:
+  row0: (-220, -100), (0, -100), (220, -100)
+  row1: (-220,  100), (0,  100), (220,  100)
+
+NEVER space new elements more than 300 px apart unless the user explicitly asks for a wide layout.
+
+- Default sticky note: font "Caveat", fontSize 20, backgroundColor "#fef08a", width 200 height 180
+- Default text-box: font "Caveat", fontSize 18, color "#1a1a1a", width 240 height 60
+- Default shape: roughness 1.5, strokeColor "#1a1a1a", fillColor "transparent"
+- Default arrow: color "#333333", strokeWidth 2, showArrowhead true`;
+
+  ipcMain.handle('ai:call', async (_e, prompt: string, board: unknown) => {
+    try {
+      let settings: { anthropicApiKey?: string; aiModel?: string } = {};
+      try {
+        if (existsSync(settingsPath)) {
+          settings = JSON.parse(await readFile(settingsPath, 'utf8'));
+        }
+      } catch { /* use defaults */ }
+
+      const apiKey = settings.anthropicApiKey;
+      if (!apiKey) return { error: 'No Anthropic API key configured. Go to File → Settings to add one.' };
+
+      const model = settings.aiModel ?? 'claude-haiku-4-5';
+
+      const userMessage = `Current whiteboard state:\n${JSON.stringify(board, null, 2)}\n\nUser request: ${prompt}`;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          system: AI_SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userMessage }],
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = `Anthropic API error ${res.status}`;
+        try { msg = JSON.parse(text)?.error?.message ?? msg; } catch { /* ignore */ }
+        return { error: msg };
+      }
+
+      const data = await res.json() as { content: { type: string; text: string }[] };
+      const rawText = data.content?.find((c) => c.type === 'text')?.text ?? '';
+
+      // Extract JSON — Claude may wrap in ```json ``` fences despite instructions
+      const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) ?? rawText.match(/([\s\S]*)/);
+      const jsonStr = (jsonMatch?.[1] ?? rawText).trim();
+
+      const parsed = JSON.parse(jsonStr);
+      return { response: parsed };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  });
+
   // ── Template IPC ─────────────────────────────────────────────────────────
   const templatesDir = join(app.getPath('userData'), 'templates');
-
   ipcMain.handle('templates:save', async (_e, name: string, data: string) => {
     await mkdir(templatesDir, { recursive: true });
     // Sanitise name to safe filename characters

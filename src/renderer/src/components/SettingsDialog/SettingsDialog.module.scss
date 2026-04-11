@@ -1,0 +1,213 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: #1e1e36;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  padding: 28px 28px 24px;
+  width: 440px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: $toolbar-text;
+  margin: 0;
+  font-family: $font-system;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $toolbar-icon;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $toolbar-text;
+  }
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid $toolbar-border;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: $toolbar-text;
+  font-family: $font-system;
+  margin-bottom: 6px;
+}
+
+.hint {
+  font-size: 11px;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  margin-bottom: 8px;
+  line-height: 1.5;
+
+  a {
+    color: $accent-primary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-text;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    border-color: $accent-primary;
+  }
+
+  &::placeholder {
+    color: rgba(160, 155, 191, 0.4);
+  }
+}
+
+.toggleVisBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-icon;
+  font-size: 11px;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $toolbar-text;
+    color: $toolbar-text;
+  }
+}
+
+.select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-text;
+  font-family: $font-system;
+  font-size: 12px;
+  padding: 9px 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color $transition-fast;
+  appearance: none;
+
+  &:focus {
+    border-color: $accent-primary;
+  }
+
+  option {
+    background: #1e1e36;
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  font-size: 13px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $toolbar-text;
+    color: $toolbar-text;
+  }
+}
+
+.saveBtn {
+  background: $accent-primary;
+  border: none;
+  border-radius: $border-radius-md;
+  color: #fff;
+  font-family: $font-system;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: #6a59e8;
+  }
+}
+
+.savedBadge {
+  font-size: 12px;
+  color: #86efac;
+  font-family: $font-system;
+  margin-right: auto;
+}

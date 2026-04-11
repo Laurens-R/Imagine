@@ -73,7 +73,8 @@ export const TitleBar: React.FC<{
   onExport?: () => void;
   onSaveTemplate?: () => void;
   onNew?: () => void;
-}> = ({ onExport, onSaveTemplate, onNew }) => {
+  onSettings?: () => void;
+}> = ({ onExport, onSaveTemplate, onNew, onSettings }) => {
   const currentFile = useWhiteboardStore((s) => s.currentFile);
   const elements = useWhiteboardStore((s) => s.elements);
   const connections = useWhiteboardStore((s) => s.connections);
@@ -146,6 +147,8 @@ export const TitleBar: React.FC<{
     { label: 'Save as Template…', action: () => onSaveTemplate?.(), disabled: !onSaveTemplate },
     { divider: true, label: '', action: () => {} },
     { label: 'Export as Image…', action: () => onExport?.(), disabled: !onExport },
+    { divider: true, label: '', action: () => {} },
+    { label: 'Settings…', action: () => onSettings?.() },
   ];
 
   const fileName = currentFile

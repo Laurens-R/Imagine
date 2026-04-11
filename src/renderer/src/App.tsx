@@ -4,6 +4,8 @@ import { TitleBar } from './components/TitleBar/TitleBar';
 import { PageStrip } from './components/PageStrip/PageStrip';
 import { NewBoardDialog } from './components/NewBoardDialog/NewBoardDialog';
 import { SaveTemplateDialog } from './components/SaveTemplateDialog/SaveTemplateDialog';
+import { SettingsDialog } from './components/SettingsDialog/SettingsDialog';
+import { AIAssistant } from './components/AIAssistant/AIAssistant';
 import { useWhiteboardStore } from './store/whiteboardStore';
 import { selectAllPages } from './store/whiteboardStore';
 import styles from './App.module.scss';
@@ -13,6 +15,8 @@ const App: React.FC = () => {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showAIDialog, setShowAIDialog] = useState(false);
 
   const { elements, connections, clearAll, snapshot, setCurrentFile, loadBoard } =
     useWhiteboardStore();
@@ -63,10 +67,13 @@ const App: React.FC = () => {
         onExport={() => setShowExportDialog(true)}
         onSaveTemplate={() => setShowSaveTemplateDialog(true)}
         onNew={handleNew}
+        onSettings={() => setShowSettingsDialog(true)}
       />
       <Whiteboard
         showExportDialog={showExportDialog}
         onCloseExportDialog={() => setShowExportDialog(false)}
+        onAIAssistant={() => setShowAIDialog(true)}
+        onSettings={() => setShowSettingsDialog(true)}
       />
       <PageStrip />
       {showNewDialog && (
@@ -80,6 +87,15 @@ const App: React.FC = () => {
           onSave={handleSaveTemplate}
           onClose={() => setShowSaveTemplateDialog(false)}
           isSaving={savingTemplate}
+        />
+      )}
+      {showSettingsDialog && (
+        <SettingsDialog onClose={() => setShowSettingsDialog(false)} />
+      )}
+      {showAIDialog && (
+        <AIAssistant
+          onClose={() => setShowAIDialog(false)}
+          onOpenSettings={() => { setShowAIDialog(false); setShowSettingsDialog(true); }}
         />
       )}
     </div>

@@ -8,7 +8,7 @@ interface ShapeElProps {
   element: ShapeElement;
   isSelected: boolean;
   tool: string;
-  onSelect: () => void;
+  onSelect: (ctrlKey?: boolean) => void;
   onUpdate: (updates: Partial<ShapeElement>) => void;
   onStartConnection: () => void;
   onCompleteConnection: () => void;
@@ -55,7 +55,7 @@ export const ShapeEl: React.FC<ShapeElProps> = ({
       }
       if (tool !== 'select') return;
       e.stopPropagation();
-      onSelect();
+      onSelect(e.ctrlKey);
       dragStart.current = { mx: e.clientX, my: e.clientY, ex: element.x, ey: element.y };
 
       const onMove = (ev: MouseEvent) => {

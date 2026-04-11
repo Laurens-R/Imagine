@@ -218,6 +218,13 @@ const IconHelp = () => (
     <circle cx="12" cy="17" r="0.5" fill="currentColor" />
   </svg>
 );
+const IconAI = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" fill="currentColor" fillOpacity="0.15" />
+    <path d="M19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14z" fill="currentColor" fillOpacity="0.2" />
+    <path d="M6 17l.5 1.5L8 19l-1.5.5L6 21l-.5-1.5L4 19l1.5-.5L6 17z" fill="currentColor" fillOpacity="0.2" />
+  </svg>
+);
 const IconCreative = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3a9 9 0 0 0 0 18" />
@@ -281,7 +288,11 @@ const SHAPE_OPTIONS: { value: ShapeType; label: string; icon: React.ReactNode }[
 
 // ── Toolbar ─────────────────────────────────────────────────────────────────
 
-export const Toolbar: React.FC = () => {
+interface ToolbarProps {
+  onAIAssistant?: () => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant }) => {
   const tool = useWhiteboardStore((s) => s.tool);
   const color = useWhiteboardStore((s) => s.color);
   const strokeWidth = useWhiteboardStore((s) => s.strokeWidth);
@@ -420,6 +431,16 @@ export const Toolbar: React.FC = () => {
           ))}
         </div>
 
+        {onAIAssistant && (
+          <button
+            className={styles.actionBtn}
+            onClick={onAIAssistant}
+            title="AI Assistant"
+          >
+            <IconAI />
+          </button>
+        )}
+
         <div className={styles.divider} />
 
         {/* ── Center: Context options ────────────────────────────────── */}
@@ -554,30 +575,30 @@ export const Toolbar: React.FC = () => {
                 {hasMulti && (
                   <>
                     <div className={styles.alignSubGroup}>
-                      <button className={styles.alignBtn} onClick={() => alignSelected('left')}     title="Align left"><IconAlignLeft /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('left')} title="Align left"><IconAlignLeft /></button>
                       <button className={styles.alignBtn} onClick={() => alignSelected('center-h')} title="Align center (horizontal)"><IconAlignCenterH /></button>
-                      <button className={styles.alignBtn} onClick={() => alignSelected('right')}    title="Align right"><IconAlignRight /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('right')} title="Align right"><IconAlignRight /></button>
                     </div>
                     <div className={styles.alignSubGroup}>
-                      <button className={styles.alignBtn} onClick={() => alignSelected('top')}      title="Align top"><IconAlignTop /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('top')} title="Align top"><IconAlignTop /></button>
                       <button className={styles.alignBtn} onClick={() => alignSelected('center-v')} title="Align middle (vertical)"><IconAlignCenterV /></button>
-                      <button className={styles.alignBtn} onClick={() => alignSelected('bottom')}   title="Align bottom"><IconAlignBottom /></button>
+                      <button className={styles.alignBtn} onClick={() => alignSelected('bottom')} title="Align bottom"><IconAlignBottom /></button>
                     </div>
                     <div className={styles.alignSubGroup}>
                       <button className={styles.alignBtn} onClick={() => distributeSelected('horizontal')} title="Distribute horizontally" disabled={selectedIds.length < 3}><IconDistributeH /></button>
-                      <button className={styles.alignBtn} onClick={() => distributeSelected('vertical')}   title="Distribute vertically"   disabled={selectedIds.length < 3}><IconDistributeV /></button>
+                      <button className={styles.alignBtn} onClick={() => distributeSelected('vertical')} title="Distribute vertically" disabled={selectedIds.length < 3}><IconDistributeV /></button>
                     </div>
                   </>
                 )}
                 <div className={styles.alignSubGroup}>
                   <button className={styles.alignBtn} onClick={() => { snapshot(); bringAllToFront(getPhysicalIds()); }} title="Bring to front"><IconBringToFront /></button>
-                  <button className={styles.alignBtn} onClick={() => { snapshot(); bringForward(getPhysicalIds()); }}    title="Bring forward"><IconBringForward /></button>
-                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendBackward(getPhysicalIds()); }}    title="Send backward"><IconSendBackward /></button>
-                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendAllToBack(getPhysicalIds()); }}   title="Send to back"><IconSendToBack /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); bringForward(getPhysicalIds()); }} title="Bring forward"><IconBringForward /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendBackward(getPhysicalIds()); }} title="Send backward"><IconSendBackward /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendAllToBack(getPhysicalIds()); }} title="Send to back"><IconSendToBack /></button>
                 </div>
                 <div className={styles.alignSubGroup}>
                   <button className={styles.alignBtn} onClick={resetRotation} title="Reset rotation"><IconResetRotation /></button>
-                  {canGroup   && <button className={styles.alignBtn} onClick={groupSelected}   title="Group (Ctrl+G)"><IconGroup /></button>}
+                  {canGroup && <button className={styles.alignBtn} onClick={groupSelected} title="Group (Ctrl+G)"><IconGroup /></button>}
                   {canUngroup && <button className={styles.alignBtn} onClick={ungroupSelected} title="Ungroup"><IconUngroup /></button>}
                 </div>
               </div>

@@ -32,6 +32,13 @@ const SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    title: 'AI Assistant',
+    shortcuts: [
+      { keys: [['✦ AI']], name: 'Open AI Assistant', desc: 'Click the ✦ (sparkle) button in the toolbar to open the AI Assistant.\nDescribe what you want — generate content, organise elements, group by topic, and more.' },
+      { keys: [['Ctrl', '↵']], name: 'Send prompt', desc: 'While in the AI Assistant dialog, press Ctrl+Enter to send the prompt.\nClick "Apply Changes" to execute the returned commands, or "Discard" to cancel.' },
+    ],
+  },
+  {
     title: 'Selection & Editing',
     shortcuts: [
       { keys: [['Ctrl', 'A']], name: 'Select all', desc: 'Select every element on the current page.\nExisting selection is replaced.' },

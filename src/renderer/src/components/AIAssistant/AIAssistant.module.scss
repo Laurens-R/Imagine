@@ -1,0 +1,276 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: #1e1e36;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  padding: 28px 28px 24px;
+  width: 420px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: $toolbar-text;
+  margin: 0;
+  font-family: $font-system;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titleIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  margin: 0 0 18px 0;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $toolbar-icon;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color $transition-fast;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $toolbar-text;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  background: rgba(124, 106, 255, 0.12);
+  border: 1px solid rgba(124, 106, 255, 0.3);
+  border-radius: 20px;
+  color: #a09bbf;
+  font-size: 11px;
+  font-family: $font-system;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(124, 106, 255, 0.25);
+    border-color: $accent-primary;
+    color: $toolbar-text;
+  }
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-text;
+  font-family: $font-system;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  resize: vertical;
+  min-height: 90px;
+  outline: none;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    border-color: $accent-primary;
+  }
+
+  &::placeholder {
+    color: rgba(160, 155, 191, 0.5);
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-md;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  font-size: 13px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) {
+    border-color: $toolbar-text;
+    color: $toolbar-text;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.sendBtn {
+  background: $accent-primary;
+  border: none;
+  border-radius: $border-radius-md;
+  color: #fff;
+  font-family: $font-system;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover:not(:disabled) {
+    background: #6a59e8;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.applyBtn {
+  background: #22c55e;
+  border: none;
+  border-radius: $border-radius-md;
+  color: #fff;
+  font-family: $font-system;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #16a34a;
+  }
+}
+
+.statusBox {
+  margin-top: 16px;
+  border-radius: $border-radius-md;
+  padding: 14px;
+  font-family: $font-system;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.statusLoading {
+  background: rgba(124, 106, 255, 0.1);
+  border: 1px solid rgba(124, 106, 255, 0.25);
+  color: $toolbar-icon;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusThinking {
+  background: rgba(124, 106, 255, 0.08);
+  border: 1px solid rgba(124, 106, 255, 0.2);
+  color: $toolbar-icon;
+}
+
+.statusError {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #fc8181;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(124, 106, 255, 0.3);
+  border-top-color: $accent-primary;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.thinkingLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(124, 106, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.commandCount {
+  font-size: 11px;
+  color: #86efac;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.noApiKey {
+  margin-top: 14px;
+  background: rgba(252, 129, 74, 0.1);
+  border: 1px solid rgba(252, 129, 74, 0.3);
+  border-radius: $border-radius-md;
+  padding: 12px;
+  font-size: 12px;
+  color: #fbbf24;
+  font-family: $font-system;
+  line-height: 1.5;
+
+  button {
+    background: none;
+    border: none;
+    color: $accent-primary;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    text-decoration: underline;
+
+    &:hover {
+      color: $toolbar-text;
+    }
+  }
+}
