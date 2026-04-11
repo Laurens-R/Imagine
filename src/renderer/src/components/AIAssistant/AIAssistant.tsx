@@ -174,7 +174,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onClose, onOpenSetting
             {aiResponse.thinking && (
               <>
                 <div className={styles.thinkingLabel}>Claude's reasoning</div>
-                {aiResponse.thinking}
+                {aiResponse.thinking
+                  // Remove sentences that are mainly coordinate/number calculations
+                  .split(/(?<=[.!?])\s+/)
+                  .filter((s) => !/x=|y=|width=|height=|-?\d{3,}/.test(s))
+                  .join(' ')
+                  .trim() || aiResponse.thinking.split(/(?<=[.!?])\s+/)[0]}
               </>
             )}
             <div className={styles.commandCount}>

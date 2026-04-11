@@ -189,7 +189,7 @@ Groups: {id, childIds[]}
 ## Response
 Return ONLY valid JSON (no markdown fences, no prose outside JSON):
 {
-  "thinking": "brief reasoning (optional)",
+  "thinking": "1-2 sentences of high-level reasoning only — no coordinates or technical details",
   "targetPage": "current"|"new",
   "newPageLabel": "label if targetPage=new",
   "commands": [
