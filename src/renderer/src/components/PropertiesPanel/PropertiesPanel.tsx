@@ -449,7 +449,7 @@ export const PropertiesPanel: React.FC = () => {
   const selectedId           = useWhiteboardStore((s) => s.selectedId);
   const selectedConnectionId = useWhiteboardStore((s) => s.selectedConnectionId);
   const tool                 = useWhiteboardStore((s) => s.tool);
-  const { removeElement, removeConnection, setSelectedId, setSelectedConnectionId, snapshot, bringToFront, sendToBack } = useWhiteboardStore();
+  const { removeElement, removeConnection, setSelectedId, setSelectedConnectionId, snapshot } = useWhiteboardStore();
 
   const el   = selectedId           ? elements.find((e) => e.id === selectedId)               ?? null : null;
   const conn = selectedConnectionId ? connections.find((c) => c.id === selectedConnectionId)  ?? null : null;
@@ -516,25 +516,7 @@ export const PropertiesPanel: React.FC = () => {
           {el.type === 'icon'        && <IconProps       el={el as IconElement} />}
           {el.type === 'emoji'       && <EmojiProps      el={el as EmojiElement} />}
 
-          <div className={styles.divider} />
 
-          {/* Layer controls */}
-          <div className={styles.layerRow}>
-            <button className={styles.layerBtn} onClick={() => bringToFront(el.id)} title="Bring to front">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="5" width="8" height="8" rx="1" />
-                <path d="M3 11V3h8" strokeDasharray="2 2" />
-              </svg>
-              <span>Front</span>
-            </button>
-            <button className={styles.layerBtn} onClick={() => sendToBack(el.id)} title="Send to back">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="8" height="8" rx="1" />
-                <path d="M6 11v2h7V5h-2" strokeDasharray="2 2" />
-              </svg>
-              <span>Back</span>
-            </button>
-          </div>
         </>
       ) : null}
     </div>

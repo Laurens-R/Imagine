@@ -2,27 +2,13 @@
 
 .stickyNote {
   position: absolute;
-  border-radius: 2px 12px 12px 12px;
+  border-radius: 2px 2px 2px 2px;
   padding: 14px 14px 12px 14px;
   box-shadow: $shadow-sticky;
   display: flex;
   flex-direction: column;
   transition: box-shadow $transition-fast;
   user-select: none;
-
-  // Tab fold at the top-left corner
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0 18px 18px 0;
-    border-color: transparent rgba(0, 0, 0, 0.12) transparent transparent;
-    border-radius: 0;
-  }
 
   &.selected {
     box-shadow: $shadow-sticky, 0 0 0 2px $selection-color;
