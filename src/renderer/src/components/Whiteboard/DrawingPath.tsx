@@ -50,9 +50,11 @@ export const DrawingPath: React.FC<DrawingPathProps> = ({
       if (!dragRef.current) return;
       const ddx = (ev.clientX - dragRef.current.mx) / zoom;
       const ddy = (ev.clientY - dragRef.current.my) / zoom;
+      const effDdx = ev.shiftKey ? (Math.abs(ddx) >= Math.abs(ddy) ? ddx : 0) : ddx;
+      const effDdy = ev.shiftKey ? (Math.abs(ddy) >  Math.abs(ddx) ? ddy : 0) : ddy;
       const newPts = dragRef.current.points.map(([px, py, pr]) => [
-        gridEnabled ? snapVal(px + ddx, gridSize) : px + ddx,
-        gridEnabled ? snapVal(py + ddy, gridSize) : py + ddy,
+        gridEnabled ? snapVal(px + effDdx, gridSize) : px + effDdx,
+        gridEnabled ? snapVal(py + effDdy, gridSize) : py + effDdy,
         pr,
       ] as [number, number, number]);
       onUpdate({ x: newPts[0][0], y: newPts[0][1], points: newPts });

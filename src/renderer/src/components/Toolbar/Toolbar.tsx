@@ -179,6 +179,38 @@ const IconResetRotation = () => (
     <line x1="10" y1="10" x2="10" y2="6" strokeWidth={2} />
   </svg>
 );
+const IconBringToFront = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="7" y="9" width="10" height="9" rx="1" strokeOpacity="0.4" />
+    <rect x="3" y="6" width="10" height="9" rx="1" />
+    <polyline points="5.5 4 7.5 2 9.5 4" />
+    <polyline points="5.5 6.2 7.5 4.2 9.5 6.2" />
+  </svg>
+);
+const IconBringForward = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="7" y="9" width="10" height="9" rx="1" strokeOpacity="0.4" />
+    <rect x="3" y="6" width="10" height="9" rx="1" />
+    <polyline points="5.5 4 7.5 2 9.5 4" />
+    <line x1="7.5" y1="2" x2="7.5" y2="6" />
+  </svg>
+);
+const IconSendBackward = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="10" height="9" rx="1" strokeOpacity="0.4" />
+    <rect x="7" y="6" width="10" height="9" rx="1" />
+    <polyline points="10.5 14 12.5 16 14.5 14" />
+    <line x1="12.5" y1="10" x2="12.5" y2="16" />
+  </svg>
+);
+const IconSendToBack = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="10" height="9" rx="1" strokeOpacity="0.4" />
+    <rect x="7" y="6" width="10" height="9" rx="1" />
+    <polyline points="10.5 12 12.5 14 14.5 12" />
+    <polyline points="10.5 14.5 12.5 16.5 14.5 14.5" />
+  </svg>
+);
 const IconHelp = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
@@ -289,6 +321,11 @@ export const Toolbar: React.FC = () => {
     groupSelected,
     ungroupSelected,
     resetRotation,
+    snapshot,
+    bringAllToFront,
+    bringForward,
+    sendBackward,
+    sendAllToBack,
     helpOpen,
     setHelpOpen,
     creativeMode,
@@ -499,6 +536,19 @@ export const Toolbar: React.FC = () => {
             const hasMulti = hasGroup || selectedIds.length >= 2;
             const canGroup = !hasGroup && selectedIds.length >= 2;
             const canUngroup = hasGroup;
+
+            // Expand group IDs to physical element IDs for z-order operations
+            const getPhysicalIds = () => {
+              const topIds = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+              const physical: string[] = [];
+              for (const id of topIds) {
+                const grp = groups.find((g) => g.id === id);
+                if (grp) physical.push(...grp.childIds);
+                else physical.push(id);
+              }
+              return physical;
+            };
+
             return (
               <div className={styles.alignGroup}>
                 {hasMulti && (
@@ -519,6 +569,12 @@ export const Toolbar: React.FC = () => {
                     </div>
                   </>
                 )}
+                <div className={styles.alignSubGroup}>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); bringAllToFront(getPhysicalIds()); }} title="Bring to front"><IconBringToFront /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); bringForward(getPhysicalIds()); }}    title="Bring forward"><IconBringForward /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendBackward(getPhysicalIds()); }}    title="Send backward"><IconSendBackward /></button>
+                  <button className={styles.alignBtn} onClick={() => { snapshot(); sendAllToBack(getPhysicalIds()); }}   title="Send to back"><IconSendToBack /></button>
+                </div>
                 <div className={styles.alignSubGroup}>
                   <button className={styles.alignBtn} onClick={resetRotation} title="Reset rotation"><IconResetRotation /></button>
                   {canGroup   && <button className={styles.alignBtn} onClick={groupSelected}   title="Group (Ctrl+G)"><IconGroup /></button>}

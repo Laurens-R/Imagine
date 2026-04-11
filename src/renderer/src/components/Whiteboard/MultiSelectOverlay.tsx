@@ -207,23 +207,25 @@ export const MultiSelectOverlay: React.FC = () => {
           if (!multiDragRef.current) return;
           const ddx = (ev.clientX - multiDragRef.current.mx) / zoom;
           const ddy = (ev.clientY - multiDragRef.current.my) / zoom;
+          const effDdx = ev.shiftKey ? (Math.abs(ddx) >= Math.abs(ddy) ? ddx : 0) : ddx;
+          const effDdy = ev.shiftKey ? (Math.abs(ddy) >  Math.abs(ddx) ? ddy : 0) : ddy;
           multiDragRef.current.origins.forEach(({ id, x, y, x2, y2, points }) => {
             if (points) {
               const newPts = points.map(([px, py, pr]) => [
-                gridEnabled ? snapVal(px + ddx, gridSize) : px + ddx,
-                gridEnabled ? snapVal(py + ddy, gridSize) : py + ddy,
+                gridEnabled ? snapVal(px + effDdx, gridSize) : px + effDdx,
+                gridEnabled ? snapVal(py + effDdy, gridSize) : py + effDdy,
                 pr,
               ] as [number, number, number]);
               updateElement(id, { x: newPts[0][0], y: newPts[0][1], points: newPts } as Partial<WhiteboardElement>);
               return;
             }
             const updates: Record<string, number> = {
-              x: gridEnabled ? snapVal(x + ddx, gridSize) : x + ddx,
-              y: gridEnabled ? snapVal(y + ddy, gridSize) : y + ddy,
+              x: gridEnabled ? snapVal(x + effDdx, gridSize) : x + effDdx,
+              y: gridEnabled ? snapVal(y + effDdy, gridSize) : y + effDdy,
             };
             if (x2 !== undefined && y2 !== undefined) {
-              updates.x2 = gridEnabled ? snapVal(x2 + ddx, gridSize) : x2 + ddx;
-              updates.y2 = gridEnabled ? snapVal(y2 + ddy, gridSize) : y2 + ddy;
+              updates.x2 = gridEnabled ? snapVal(x2 + effDdx, gridSize) : x2 + effDdx;
+              updates.y2 = gridEnabled ? snapVal(y2 + effDdy, gridSize) : y2 + effDdy;
             }
             updateElement(id, updates as Partial<WhiteboardElement>);
           });

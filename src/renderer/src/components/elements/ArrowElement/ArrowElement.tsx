@@ -42,8 +42,10 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
       if (!dragStart.current) return;
       const ddx = (ev.clientX - dragStart.current.mx) / zoom;
       const ddy = (ev.clientY - dragStart.current.my) / zoom;
-      const rawX = dragStart.current.ex + ddx;
-      const rawY = dragStart.current.ey + ddy;
+      const effDdx = ev.shiftKey ? (Math.abs(ddx) >= Math.abs(ddy) ? ddx : 0) : ddx;
+      const effDdy = ev.shiftKey ? (Math.abs(ddy) >  Math.abs(ddx) ? ddy : 0) : ddy;
+      const rawX = dragStart.current.ex + effDdx;
+      const rawY = dragStart.current.ey + effDdy;
       if (gridEnabled) {
         const snappedX = snapVal(rawX, gridSize);
         const snappedY = snapVal(rawY, gridSize);
@@ -51,7 +53,7 @@ export const ArrowEl: React.FC<ArrowElProps> = ({ element, isSelected, tool, onS
         const offY = dragStart.current.ey2 - dragStart.current.ey;
         onUpdate({ x: snappedX, y: snappedY, x2: snappedX + offX, y2: snappedY + offY });
       } else {
-        onUpdate({ x: rawX, y: rawY, x2: dragStart.current.ex2 + ddx, y2: dragStart.current.ey2 + ddy });
+        onUpdate({ x: rawX, y: rawY, x2: dragStart.current.ex2 + effDdx, y2: dragStart.current.ey2 + effDdy });
       }
     };
     const onUp = () => {

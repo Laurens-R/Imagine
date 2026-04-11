@@ -28,6 +28,7 @@ const SECTIONS: ShortcutSection[] = [
       { keys: [['Space', 'drag']], name: 'Pan canvas', desc: 'Hold Space and drag to scroll the canvas in any direction.\nWorks regardless of which drawing tool is active.' },
       { keys: [['Scroll']], name: 'Zoom', desc: 'Scroll the mouse wheel to zoom in or out.\nThe view centres on the cursor position.' },
       { keys: [['Shift']], name: 'Constrain line/arrow angle', desc: 'Hold Shift while drawing a line or arrow to snap the angle.\nSnaps to multiples of 45° (horizontal, diagonal, vertical).' },
+      { keys: [['Shift', 'drag']], name: 'Constrain element movement', desc: 'Hold Shift while dragging an element to lock movement to one axis.\nMoves horizontally or vertically based on the initial drag direction.' },
     ],
   },
   {

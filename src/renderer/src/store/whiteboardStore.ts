@@ -99,6 +99,10 @@ interface WhiteboardActions {
   removeDrawingsAt: (x: number, y: number, radius: number) => void;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
+  bringAllToFront: (ids: string[]) => void;
+  bringForward: (ids: string[]) => void;
+  sendBackward: (ids: string[]) => void;
+  sendAllToBack: (ids: string[]) => void;
 
   // Connection CRUD
   addConnection: (sourceId: string, targetId: string, color?: string, label?: string) => void;
@@ -303,6 +307,59 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         if (idx !== -1) {
           state.elements[idx].zIndex = 0;
         }
+      }),
+
+    bringAllToFront: (ids) =>
+      set((state) => {
+        const selSet = new Set(ids);
+        const selEls = state.elements.filter((e) => selSet.has(e.id));
+        if (selEls.length === 0) return;
+        const unselMaxZ = state.elements
+          .filter((e) => !selSet.has(e.id))
+          .reduce((max, e) => Math.max(max, e.zIndex), 0);
+        selEls.sort((a, b) => a.zIndex - b.zIndex);
+        selEls.forEach((el, i) => { el.zIndex = unselMaxZ + i + 1; });
+      }),
+
+    bringForward: (ids) =>
+      set((state) => {
+        const selSet = new Set(ids);
+        const selEls = state.elements.filter((e) => selSet.has(e.id));
+        if (selEls.length === 0) return;
+        const maxSelZ = Math.max(...selEls.map((e) => e.zIndex));
+        const unselAbove = state.elements.filter((e) => !selSet.has(e.id) && e.zIndex > maxSelZ);
+        if (unselAbove.length === 0) return;
+        const nextAbove = unselAbove.reduce((min, e) => e.zIndex < min.zIndex ? e : min);
+        const step = nextAbove.zIndex - maxSelZ;
+        selEls.forEach((el) => { el.zIndex += step; });
+        nextAbove.zIndex -= step;
+      }),
+
+    sendBackward: (ids) =>
+      set((state) => {
+        const selSet = new Set(ids);
+        const selEls = state.elements.filter((e) => selSet.has(e.id));
+        if (selEls.length === 0) return;
+        const minSelZ = Math.min(...selEls.map((e) => e.zIndex));
+        const unselBelow = state.elements.filter((e) => !selSet.has(e.id) && e.zIndex < minSelZ);
+        if (unselBelow.length === 0) return;
+        const prevBelow = unselBelow.reduce((max, e) => e.zIndex > max.zIndex ? e : max);
+        const step = minSelZ - prevBelow.zIndex;
+        selEls.forEach((el) => { el.zIndex -= step; });
+        prevBelow.zIndex += step;
+      }),
+
+    sendAllToBack: (ids) =>
+      set((state) => {
+        const selSet = new Set(ids);
+        const selEls = state.elements.filter((e) => selSet.has(e.id));
+        if (selEls.length === 0) return;
+        const unselMinZ = state.elements
+          .filter((e) => !selSet.has(e.id))
+          .reduce((min, e) => Math.min(min, e.zIndex), Infinity);
+        const base = unselMinZ === Infinity ? 0 : Math.max(0, unselMinZ - selEls.length - 1);
+        selEls.sort((a, b) => a.zIndex - b.zIndex);
+        selEls.forEach((el, i) => { el.zIndex = base + i; });
       }),
 
     // ── Connection Actions ─────────────────────────────────────────────────

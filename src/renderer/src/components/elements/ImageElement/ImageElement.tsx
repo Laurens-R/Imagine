@@ -57,9 +57,15 @@ export const ImageEl: React.FC<ImageElProps> = ({
 
       const onMove = (ev: MouseEvent) => {
         if (!dragStart.current) return;
+        const ddx = (ev.clientX - dragStart.current.mx) / zoom;
+        const ddy = (ev.clientY - dragStart.current.my) / zoom;
+        const effDdx = ev.shiftKey ? (Math.abs(ddx) >= Math.abs(ddy) ? ddx : 0) : ddx;
+        const effDdy = ev.shiftKey ? (Math.abs(ddy) >  Math.abs(ddx) ? ddy : 0) : ddy;
+        const rawX = dragStart.current.ex + effDdx;
+        const rawY = dragStart.current.ey + effDdy;
         onUpdate({
-          x: gridEnabled ? snapVal(dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom, gridSize) : dragStart.current.ex + (ev.clientX - dragStart.current.mx) / zoom,
-          y: gridEnabled ? snapVal(dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom, gridSize) : dragStart.current.ey + (ev.clientY - dragStart.current.my) / zoom
+          x: gridEnabled ? snapVal(rawX, gridSize) : rawX,
+          y: gridEnabled ? snapVal(rawY, gridSize) : rawY
         });
       };
       const onUp = () => {

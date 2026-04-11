@@ -63,6 +63,7 @@ export const Whiteboard: React.FC<{
     setSelectedId, setSelectedIds, setSelectedConnectionId,
     snapshot, addElement, removeElement, updateElement,
     addConnection, setPendingConnection,
+    bringAllToFront, bringForward, sendBackward, sendAllToBack,
   } = useWhiteboardStore();
 
   // ── Local interaction state ────────────────────────────────────────────────
@@ -502,11 +503,17 @@ export const Whiteboard: React.FC<{
         }
         const selectedEls = elements.filter((el) => physicalIds.has(el.id));
         const hasSelection = selectedEls.length > 0 || ids.length > 0;
+        const pids = [...physicalIds];
         const menuItems: ContextMenuEntry[] = [
           { label: 'Cut',       shortcut: 'Ctrl+X', disabled: !hasSelection,        onClick: () => handleCopy(true) },
           { label: 'Copy',      shortcut: 'Ctrl+C', disabled: !hasSelection,        onClick: () => handleCopy(false) },
           { label: 'Duplicate', shortcut: 'Ctrl+D', disabled: !hasSelection,        onClick: () => { handleCopy(false); handlePaste(); } },
           { label: 'Paste',     shortcut: 'Ctrl+V', disabled: !clipboardHasItems(), onClick: () => handlePaste(contextMenu.canvasX, contextMenu.canvasY) },
+          { separator: true },
+          { label: 'Bring to Front',  disabled: !hasSelection, onClick: () => { snapshot(); bringAllToFront(pids); } },
+          { label: 'Bring Forward',   disabled: !hasSelection, onClick: () => { snapshot(); bringForward(pids); } },
+          { label: 'Send Backward',   disabled: !hasSelection, onClick: () => { snapshot(); sendBackward(pids); } },
+          { label: 'Send to Back',    disabled: !hasSelection, onClick: () => { snapshot(); sendAllToBack(pids); } },
           { separator: true },
           { label: 'Delete', shortcut: 'Del', disabled: !hasSelection, danger: true,
             onClick: () => { if (selectedEls.length > 0) { snapshot(); selectedEls.forEach((el) => removeElement(el.id)); } } },
