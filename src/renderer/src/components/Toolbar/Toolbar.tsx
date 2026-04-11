@@ -4,6 +4,8 @@ import type { ToolType, ShapeType, FontFamily, StickyColor } from '../../types';
 import { FONT_OPTIONS, STICKY_COLORS, BRUSH_COLORS } from '../../types';
 import styles from './Toolbar.module.scss';
 import { HelpDialog } from '../HelpDialog/HelpDialog';
+import { IconGallery } from '../IconGallery/IconGallery';
+import { EmojiGallery } from '../EmojiGallery/EmojiGallery';
 
 // ── Icon components ─────────────────────────────────────────────────────────
 
@@ -225,6 +227,22 @@ const IconAI = () => (
     <path d="M6 17l.5 1.5L8 19l-1.5.5L6 21l-.5-1.5L4 19l1.5-.5L6 17z" fill="currentColor" fillOpacity="0.2" />
   </svg>
 );
+const IconIconTool = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+const IconEmojiTool = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8.5 14s.875 2 3.5 2 3.5-2 3.5-2" />
+    <circle cx="9" cy="9.5" r="1" fill="currentColor" />
+    <circle cx="15" cy="9.5" r="1" fill="currentColor" />
+  </svg>
+);
 const IconCreative = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3a9 9 0 0 0 0 18" />
@@ -350,6 +368,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion
   } = useWhiteboardStore();
 
   const [shapePanelOpen, setShapePanelOpen] = useState(false);
+  const [iconGalleryOpen, setIconGalleryOpen] = useState(false);
+  const [emojiGalleryOpen, setEmojiGalleryOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
   // Open shape panel when the shape tool is activated via keyboard shortcut
@@ -358,11 +378,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion
     else setShapePanelOpen(false);
   }, [tool]);
 
+  // Close icon gallery when switching away from icon tool
+  useEffect(() => {
+    if (tool !== 'icon') setIconGalleryOpen(false);
+  }, [tool]);
+
+  // Close emoji gallery when switching away from emoji tool
+  useEffect(() => {
+    if (tool !== 'emoji') setEmojiGalleryOpen(false);
+  }, [tool]);
+
   const handleToolClick = (t: ToolType) => {
     if (t === 'shape') {
       setShapePanelOpen((prev) => tool === 'shape' ? !prev : true);
     } else {
       setShapePanelOpen(false);
+    }
+    if (t === 'icon') {
+      setIconGalleryOpen((prev) => tool === 'icon' ? !prev : true);
+    } else {
+      setIconGalleryOpen(false);
+    }
+    if (t === 'emoji') {
+      setEmojiGalleryOpen((prev) => tool === 'emoji' ? !prev : true);
+    } else {
+      setEmojiGalleryOpen(false);
     }
     setTool(t);
   };
@@ -387,10 +427,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion
     { id: 'arrow', icon: <IconArrow />, label: 'Arrow (A)' },
     { id: 'line', icon: <IconLine />, label: 'Line (L)' },
     { id: 'connection', icon: <IconConnection />, label: 'Connection (C)' },
-    { id: 'image', icon: <IconImage />, label: 'Image (I)' }
+    { id: 'image', icon: <IconImage />, label: 'Image (I)' },
+    { id: 'icon', icon: <IconIconTool />, label: 'Icons (K)' },
+    { id: 'emoji', icon: <IconEmojiTool />, label: 'Emoji (M)' },
   ];
 
-  const showColorPicker = ['sharpie', 'shape', 'text-box', 'arrow', 'line'].includes(tool);
+  const showColorPicker = ['sharpie', 'shape', 'text-box', 'arrow', 'line', 'icon'].includes(tool);
   const showSizeSlider = ['sharpie', 'arrow', 'line'].includes(tool);
   const showFontOptions = ['sticky-note', 'text-box'].includes(tool);
   const showStickyColors = tool === 'sticky-note';
@@ -398,6 +440,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onAIAssistant, settingsVersion
 
   return (
     <div className={styles.toolbar} onMouseDown={(e) => e.stopPropagation()}>
+      {/* Icon gallery panel */}
+      {iconGalleryOpen && tool === 'icon' && <IconGallery />}
+
+      {/* Emoji gallery panel */}
+      {emojiGalleryOpen && tool === 'emoji' && <EmojiGallery />}
+
       {/* Shape sub-panel */}
       {shapePanelOpen && tool === 'shape' && (
         <div className={styles.shapePanel}>

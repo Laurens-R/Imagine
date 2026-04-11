@@ -10,7 +10,9 @@ export type ToolType =
   | 'connection'
   | 'image'
   | 'arrow'
-  | 'line';
+  | 'line'
+  | 'icon'
+  | 'emoji';
 
 export type ShapeType =
   | 'rectangle'
@@ -106,6 +108,21 @@ export interface ImageElement extends SizedElement {
   polaroidFrame?: boolean;
 }
 
+/** SVG icon element */
+export interface IconElement extends SizedElement {
+  type: 'icon';
+  iconId: string;
+  color: string;
+  strokeWidth: number;
+}
+
+/** Unicode emoji element */
+export interface EmojiElement extends SizedElement {
+  type: 'emoji';
+  emoji: string;
+  fontSize: number;
+}
+
 /** Two-point arrow (or straight line when showArrowhead is false) */
 export interface ArrowElement extends BaseElement {
   type: 'arrow';
@@ -123,7 +140,9 @@ export type WhiteboardElement =
   | TextBoxElement
   | ShapeElement
   | ImageElement
-  | ArrowElement;
+  | ArrowElement
+  | IconElement
+  | EmojiElement;
 
 // ─── Connection Types ─────────────────────────────────────────────────────────
 
@@ -182,6 +201,8 @@ export interface PageData {
   elements: WhiteboardElement[];
   connections: Connection[];
   groups: ElementGroup[];
+  zoom?: number;
+  pan?: { x: number; y: number };
 }
 
 // ─── History Snapshot ────────────────────────────────────────────────────────

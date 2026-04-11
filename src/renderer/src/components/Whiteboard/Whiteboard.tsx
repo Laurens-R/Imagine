@@ -16,10 +16,13 @@ import { ImageEl } from '../elements/ImageElement/ImageElement';
 import { ShapeEl } from '../elements/ShapeElement/ShapeElement';
 import { Connection } from '../elements/Connection/Connection';
 import { ArrowEl } from '../elements/ArrowElement/ArrowElement';
+import { IconEl } from '../elements/IconElement/IconElement';
+import { EmojiElement as EmojiEl } from '../elements/EmojiElement/EmojiElement';
 import type {
   ActiveDrawing, ShapePreview, WhiteboardElement, DrawingElement,
-  StickyNoteElement, TextBoxElement, ArrowElement, ImageElement,
+  StickyNoteElement, TextBoxElement, ArrowElement, ImageElement, IconElement, EmojiElement,
 } from '../../types';
+import { ICON_DEFS_MAP } from '../../utils/iconData';
 import { DrawingPath } from './DrawingPath';
 import { PreviewShape } from './PreviewShape';
 import { PendingConnectionLine } from './PendingConnectionLine';
@@ -54,6 +57,8 @@ export const Whiteboard: React.FC<{
   const stickyColor = useWhiteboardStore((s) => s.stickyColor);
   const zoom = useWhiteboardStore((s) => s.zoom);
   const pan = useWhiteboardStore((s) => s.pan);
+  const selectedIconId = useWhiteboardStore((s) => s.selectedIconId);
+  const selectedEmoji = useWhiteboardStore((s) => s.selectedEmoji);
   const pendingConnection = useWhiteboardStore((s) => s.pendingConnection);
   const canvasWidth = useWhiteboardStore((s) => s.canvasWidth);
   const canvasHeight = useWhiteboardStore((s) => s.canvasHeight);
@@ -200,8 +205,9 @@ export const Whiteboard: React.FC<{
   const drawings = elements.filter((el) => el.type === 'drawing') as DrawingElement[];
   const shapes = elements.filter((el) => el.type === 'shape');
   const arrows = elements.filter((el) => el.type === 'arrow') as ArrowElement[];
+  const icons = elements.filter((el) => el.type === 'icon') as IconElement[];
   const htmlEls = elements.filter((el) =>
-    el.type === 'sticky-note' || el.type === 'text-box' || el.type === 'image'
+    el.type === 'sticky-note' || el.type === 'text-box' || el.type === 'image' || el.type === 'emoji'
   );
 
   const selectedElementIds = useMemo(() => {
@@ -235,6 +241,8 @@ export const Whiteboard: React.FC<{
       case 'image':      return 'copy';
       case 'arrow':      return 'crosshair';
       case 'line':       return 'crosshair';
+      case 'icon':       return selectedIconId ? 'copy' : 'default';
+      case 'emoji':      return selectedEmoji ? 'copy' : 'default';
       default:           return 'default';
     }
   };
@@ -317,7 +325,7 @@ export const Whiteboard: React.FC<{
           width={canvasWidth}
           height={canvasHeight}
           style={{
-            pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow' || tool === 'line') ? 'all' : 'none',
+            pointerEvents: (tool === 'select' || tool === 'connection' || tool === 'arrow' || tool === 'line' || tool === 'icon') ? 'all' : 'none',
           }}
         >
           {gridEnabled && (
@@ -381,6 +389,18 @@ export const Whiteboard: React.FC<{
             />
           ))}
 
+          {icons.map((el) => (
+            <IconEl
+              key={el.id}
+              element={el}
+              isSelected={selectedElementIds.has(el.id)}
+              tool={tool}
+              onSelect={(ctrlKey) => handleElementClick(el.id, ctrlKey)}
+              onUpdate={(updates) => updateElement(el.id, updates as Partial<IconElement>)}
+              {...makeConnectionHandlers(el)}
+            />
+          ))}
+
           {arrowStart && arrowPreview && (
             <g opacity={0.6}>
               <line
@@ -427,6 +447,7 @@ export const Whiteboard: React.FC<{
             if (el.type === 'sticky-note') return <StickyNote key={el.id} element={el as StickyNoteElement} {...commonProps} />;
             if (el.type === 'text-box')   return <TextBox   key={el.id} element={el as TextBoxElement}   {...commonProps} />;
             if (el.type === 'image')      return <ImageEl   key={el.id} element={el as ImageElement}     {...commonProps} />;
+            if (el.type === 'emoji')      return <EmojiEl   key={el.id} element={el as EmojiElement}     {...commonProps} />;
             return null;
           })}
         </div>
@@ -451,6 +472,48 @@ export const Whiteboard: React.FC<{
             borderRadius: 4, pointerEvents: 'none',
           }} />
         )}
+
+        {/* Icon cursor preview */}
+        {tool === 'icon' && cursorCanvas && selectedIconId && (() => {
+          const iconDef = ICON_DEFS_MAP[selectedIconId];
+          if (!iconDef) return null;
+          const size = 64;
+          return (
+            <div style={{
+              position: 'absolute',
+              left: cursorCanvas.x - size / 2,
+              top: cursorCanvas.y - size / 2,
+              width: size, height: size,
+              opacity: 0.45,
+              pointerEvents: 'none',
+            }}>
+              <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+                stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                {iconDef.paths.map((d, i) => <path key={i} d={d} />)}
+              </svg>
+            </div>
+          );
+        })()}
+
+        {/* Emoji cursor preview */}
+        {tool === 'emoji' && cursorCanvas && selectedEmoji && (() => {
+          const size = 80;
+          return (
+            <div style={{
+              position: 'absolute',
+              left: cursorCanvas.x - size / 2,
+              top: cursorCanvas.y - size / 2,
+              width: size, height: size,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0.55,
+              pointerEvents: 'none',
+              fontSize: size * 0.75,
+              lineHeight: 1,
+            }}>
+              {selectedEmoji}
+            </div>
+          );
+        })()}
       </div>
 
       <Toolbar onAIAssistant={onAIAssistant} settingsVersion={settingsVersion} />

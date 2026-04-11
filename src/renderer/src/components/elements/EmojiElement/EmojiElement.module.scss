@@ -1,0 +1,91 @@
+@use '../../../styles/variables' as *;
+
+.emojiElement {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  border-radius: 4px;
+  transition: box-shadow $transition-fast;
+
+  &.selected {
+    box-shadow: 0 0 0 2px $selection-color;
+  }
+
+  &.connectable {
+    &:hover {
+      box-shadow: 0 0 0 3px #e74c3c, 0 0 14px rgba(231, 76, 60, 0.45);
+    }
+  }
+
+  &.connectionSource {
+    &:hover {
+      box-shadow: 0 0 0 2px #27ae60, 0 0 12px rgba(39, 174, 96, 0.35);
+    }
+  }
+
+  &.pendingSource {
+    box-shadow: 0 0 0 3px #27ae60, 0 0 14px rgba(39, 174, 96, 0.45);
+  }
+
+  &.connTarget {
+    box-shadow: 0 0 0 3px #e74c3c, 0 0 20px rgba(231, 76, 60, 0.6);
+    transition: box-shadow 0.1s ease;
+  }
+}
+
+.emojiChar {
+  display: block;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.controls {
+  position: absolute;
+  top: -14px;
+  right: -6px;
+  display: flex;
+  gap: 4px;
+}
+
+.deleteBtn,
+.connectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform $transition-fast;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+  &:hover {
+    transform: scale(1.15);
+  }
+}
+
+.deleteBtn {
+  background: #e74c3c;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.connectBtn {
+  background: #27ae60;
+  color: white;
+  font-size: 13px;
+}
+
+.connPin {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  cursor: crosshair;
+  z-index: 1;
+}

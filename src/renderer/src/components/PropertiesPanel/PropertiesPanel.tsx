@@ -5,7 +5,7 @@ import {
 } from '../../types';
 import type {
   DrawingElement, StickyNoteElement, TextBoxElement,
-  ShapeElement, ImageElement, ArrowElement,
+  ShapeElement, ImageElement, ArrowElement, IconElement, EmojiElement,
   FontFamily, StickyColor, ShapeType, Connection, TextAlign,
 } from '../../types';
 import styles from './PropertiesPanel.module.scss';
@@ -372,6 +372,49 @@ const ConnectionProps: React.FC<{ conn: Connection }> = ({ conn }) => {
 
 // ── Type label helpers ───────────────────────────────────────────────────────────
 
+const IconProps: React.FC<{ el: IconElement }> = ({ el }) => {
+  const { updateElement, snapshot } = useWhiteboardStore();
+  const snap = () => snapshot();
+  return <>
+    <DimensionRow
+      width={el.width} height={el.height}
+      onStart={snap}
+      onChange={(w, h) => updateElement(el.id, { width: w, height: h })}
+    />
+    <Row label="Color">
+      <SwatchRow colors={BRUSH_COLORS} value={el.color} onStart={snap}
+        onChange={(c) => updateElement(el.id, { color: c })} />
+    </Row>
+    <Row label="Weight">
+      <Slider min={1} max={6} step={0.5} value={el.strokeWidth} onStart={snap}
+        onChange={(v) => updateElement(el.id, { strokeWidth: v })}
+        display={`${el.strokeWidth}px`} />
+    </Row>
+  </>;
+};
+
+const EmojiProps: React.FC<{ el: EmojiElement }> = ({ el }) => {
+  const { updateElement, snapshot } = useWhiteboardStore();
+  const snap = () => snapshot();
+  return <>
+    <Row label="Emoji">
+      <span style={{ fontSize: 32, lineHeight: 1 }}>{el.emoji}</span>
+    </Row>
+    <DimensionRow
+      width={el.width} height={el.height}
+      onStart={snap}
+      onChange={(w, h) => updateElement(el.id, { width: w, height: h, fontSize: h * 0.75 })}
+    />
+    <Row label="Size">
+      <Slider min={16} max={320} step={4} value={el.fontSize} onStart={snap}
+        onChange={(v) => updateElement(el.id, { fontSize: v, width: Math.round(v / 0.75), height: Math.round(v / 0.75) })}
+        display={`${el.fontSize}px`} />
+    </Row>
+  </>;
+};
+
+// ── Type label helpers ───────────────────────────────────────────────────────────
+
 const TYPE_LABELS: Record<string, string> = {
   'drawing':     'Drawing',
   'sticky-note': 'Sticky Note',
@@ -381,6 +424,8 @@ const TYPE_LABELS: Record<string, string> = {
   'arrow':       'Arrow',
   'line':        'Line',
   'connection':  'Connection',
+  'icon':        'Icon',
+  'emoji':       'Emoji',
 };
 
 function getTypeLabel(el: { type: string; showArrowhead?: boolean }): string {
@@ -460,6 +505,8 @@ export const PropertiesPanel: React.FC = () => {
           {el.type === 'shape'       && <ShapeProps      el={el} />}
           {el.type === 'image'       && <ImageProps      el={el} />}
           {el.type === 'arrow'       && <ArrowProps      el={el} />}
+          {el.type === 'icon'        && <IconProps       el={el as IconElement} />}
+          {el.type === 'emoji'       && <EmojiProps      el={el as EmojiElement} />}
 
           <div className={styles.divider} />
 

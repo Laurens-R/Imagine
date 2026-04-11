@@ -78,6 +78,12 @@ interface WhiteboardState {
 
   // Visual mode
   creativeMode: boolean;
+
+  // Selected icon (for icon placement tool)
+  selectedIconId: string | null;
+
+  // Selected emoji (for emoji placement tool)
+  selectedEmoji: string | null;
 }
 
 interface WhiteboardActions {
@@ -151,6 +157,12 @@ interface WhiteboardActions {
   // Visual mode
   setCreativeMode: (enabled: boolean) => void;
 
+  // Icon tool
+  setSelectedIconId: (id: string | null) => void;
+
+  // Emoji tool
+  setSelectedEmoji: (emoji: string | null) => void;
+
   // Alignment
   alignSelected: (op: 'left' | 'right' | 'center-h' | 'top' | 'bottom' | 'center-v') => void;
   distributeSelected: (axis: 'horizontal' | 'vertical') => void;
@@ -203,10 +215,12 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     elements: [],
     connections: [],
     groups: [],
-    pages: [{ id: uuidv4(), label: 'Page 1', elements: [], connections: [], groups: [] }],
+    pages: [{ id: uuidv4(), label: 'Page 1', elements: [], connections: [], groups: [], zoom: 1, pan: { x: 0, y: 0 } }],
     currentPageIndex: 0,
     helpOpen: false,
     creativeMode: false,
+    selectedIconId: null,
+    selectedEmoji: null,
     selectedId: null,
     selectedIds: [],
     selectedConnectionId: null,
@@ -517,8 +531,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.undoStack = [];
         state.redoStack = [];
         state.currentFile = filePath;
-        state.zoom = 1;
-        state.pan = { x: 0, y: 0 };
+        const firstPage = state.pages[0];
+        state.zoom = firstPage?.zoom ?? 1;
+        state.pan = firstPage?.pan ? { ...firstPage.pan } : { x: 0, y: 0 };
         state.creativeMode = creativeMode ?? false;
         state.color = (creativeMode ?? false) ? '#e8e6ff' : '#1a1a1a';
       }),
@@ -537,6 +552,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           elements: JSON.parse(JSON.stringify(state.elements)),
           connections: JSON.parse(JSON.stringify(state.connections)),
           groups: JSON.parse(JSON.stringify(state.groups)),
+          zoom: state.zoom,
+          pan: { ...state.pan },
         };
         const newPage: PageData = {
           id: uuidv4(),
@@ -544,12 +561,16 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           elements: [],
           connections: [],
           groups: [],
+          zoom: 1,
+          pan: { x: 0, y: 0 },
         };
         state.pages.push(newPage);
         state.currentPageIndex = state.pages.length - 1;
         state.elements = [];
         state.connections = [];
         state.groups = [];
+        state.zoom = 1;
+        state.pan = { x: 0, y: 0 };
         state.selectedId = null;
         state.selectedIds = [];
         state.undoStack = [];
@@ -566,6 +587,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           elements: JSON.parse(JSON.stringify(state.elements)),
           connections: JSON.parse(JSON.stringify(state.connections)),
           groups: JSON.parse(JSON.stringify(state.groups)),
+          zoom: state.zoom,
+          pan: { ...state.pan },
         };
         state.pages.splice(index, 1);
         let newIndex = state.currentPageIndex;
@@ -575,6 +598,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         state.elements = JSON.parse(JSON.stringify(p.elements));
         state.connections = JSON.parse(JSON.stringify(p.connections));
         state.groups = JSON.parse(JSON.stringify(p.groups ?? []));
+        state.zoom = p.zoom ?? 1;
+        state.pan = p.pan ? { ...p.pan } : { x: 0, y: 0 };
         state.currentPageIndex = newIndex;
         state.selectedId = null;
         state.selectedIds = [];
@@ -593,11 +618,15 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           elements: JSON.parse(JSON.stringify(state.elements)),
           connections: JSON.parse(JSON.stringify(state.connections)),
           groups: JSON.parse(JSON.stringify(state.groups)),
+          zoom: state.zoom,
+          pan: { ...state.pan },
         };
         const p = state.pages[newIndex];
         state.elements = JSON.parse(JSON.stringify(p.elements));
         state.connections = JSON.parse(JSON.stringify(p.connections));
         state.groups = JSON.parse(JSON.stringify(p.groups ?? []));
+        state.zoom = p.zoom ?? 1;
+        state.pan = p.pan ? { ...p.pan } : { x: 0, y: 0 };
         state.currentPageIndex = newIndex;
         state.selectedId = null;
         state.selectedIds = [];
@@ -618,6 +647,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
       state.creativeMode = enabled;
       state.color = enabled ? '#e8e6ff' : '#1a1a1a';
     }),
+
+    setSelectedIconId: (id) => set((state) => { state.selectedIconId = id; }),
+    setSelectedEmoji: (emoji) => set((state) => { state.selectedEmoji = emoji; }),
 
     // ── Alignment ─────────────────────────────────────────────────────────────
     alignSelected: (op) => {
@@ -806,6 +838,6 @@ export const selectElement = (id: string) => (state: WhiteboardStore) =>
 export const selectAllPages = (state: WhiteboardStore): PageData[] =>
   state.pages.map((p, i) =>
     i === state.currentPageIndex
-      ? { ...p, elements: state.elements, connections: state.connections, groups: state.groups }
+      ? { ...p, elements: state.elements, connections: state.connections, groups: state.groups, zoom: state.zoom, pan: { ...state.pan } }
       : p
   );

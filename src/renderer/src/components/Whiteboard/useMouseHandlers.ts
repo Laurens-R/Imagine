@@ -4,7 +4,7 @@ import { polaroidRotation } from '../../utils/helpers';
 import { promoteToTopLevel, getElementBounds, ERASE_RADIUS } from './whiteboardHelpers';
 import type {
   ActiveDrawing, ShapePreview, WhiteboardElement, DrawingElement,
-  StickyNoteElement, TextBoxElement, ShapeElement, ImageElement, ArrowElement,
+  StickyNoteElement, TextBoxElement, ShapeElement, ImageElement, ArrowElement, IconElement, EmojiElement,
 } from '../../types';
 import type { LassoRect } from './whiteboardHelpers';
 import styles from './Whiteboard.module.scss';
@@ -69,6 +69,8 @@ export function useMouseHandlers({
     snapshot, removeDrawingsAt, addElement, setSelectedId, setSelectedIds,
     setPendingConnection, addConnection, setPan, setTool,
   } = useWhiteboardStore();
+  const selectedIconId = useWhiteboardStore((s) => s.selectedIconId);
+  const selectedEmoji = useWhiteboardStore((s) => s.selectedEmoji);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -176,6 +178,41 @@ export function useMouseHandlers({
           if (pendingConnection) setPendingConnection(null);
           break;
         }
+        case 'icon': {
+          const iconId = selectedIconId ?? useWhiteboardStore.getState().selectedIconId;
+          if (!iconId) break;
+          snapshot();
+          const size = 64;
+          const { x: ix, y: iy } = snap(x - size / 2, y - size / 2);
+          const iconEl: Omit<IconElement, 'id' | 'zIndex'> = {
+            type: 'icon',
+            x: ix, y: iy,
+            width: size, height: size,
+            rotation: 0,
+            iconId,
+            color,
+            strokeWidth: 2,
+          };
+          addElement(iconEl);
+          break;
+        }
+        case 'emoji': {
+          const emoji = selectedEmoji ?? useWhiteboardStore.getState().selectedEmoji;
+          if (!emoji) break;
+          snapshot();
+          const size = 80;
+          const { x: ex, y: ey } = snap(x - size / 2, y - size / 2);
+          const emojiEl: Omit<EmojiElement, 'id' | 'zIndex'> = {
+            type: 'emoji',
+            x: ex, y: ey,
+            width: size, height: size,
+            rotation: 0,
+            emoji,
+            fontSize: size * 0.75,
+          };
+          addElement(emojiEl);
+          break;
+        }
         default:
           break;
       }
@@ -187,7 +224,7 @@ export function useMouseHandlers({
       arrowStart, setArrowStart, setArrowPreview,
       isDrawingRef, panStartRef, setIsPanning, setActiveDrawing,
       setShapeStart, setShapePreview, pendingImagePos, fileInputRef,
-      lassoStartRef, containerRef, svgRef,
+      lassoStartRef, containerRef, svgRef, selectedIconId, selectedEmoji,
     ]
   );
 
@@ -251,7 +288,7 @@ export function useMouseHandlers({
         setArrowPreview(snap(px, py));
       }
 
-      if (tool === 'sticky-note' || tool === 'text-box') {
+      if (tool === 'sticky-note' || tool === 'text-box' || tool === 'icon' || tool === 'emoji') {
         setCursorCanvas({ x, y });
       }
     },

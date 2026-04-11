@@ -1,0 +1,124 @@
+@use 'sass:color';
+
+.gallery {
+  position: fixed;
+  bottom: $toolbar-height + 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  background: color.adjust($toolbar-bg, $lightness: 6%);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 380px;
+}
+
+// ── Category tabs ─────────────────────────────────────────────────────────────
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px 4px;
+  border-bottom: 1px solid $toolbar-border;
+  overflow-x: auto;
+  flex-shrink: 0;
+
+  &::-webkit-scrollbar {
+    height: 0;
+  }
+}
+
+.tab {
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: $border-radius-sm;
+  background: transparent;
+  color: $toolbar-icon;
+  font-size: 11px;
+  font-family: $font-system;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $toolbar-hover;
+    color: $toolbar-text;
+  }
+
+  &.activeTab {
+    background: $accent-primary;
+    color: #ffffff;
+    border-color: transparent;
+  }
+}
+
+// ── Emoji grid ────────────────────────────────────────────────────────────────
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+}
+
+.emojiBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 56px;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: $border-radius-md;
+  background: transparent;
+  color: $toolbar-icon;
+  cursor: pointer;
+  padding: 4px 2px 3px;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $toolbar-hover;
+    border-color: $toolbar-border;
+  }
+
+  &.activeEmoji {
+    background: $accent-primary;
+    border-color: transparent;
+  }
+}
+
+.emojiChar {
+  font-size: 26px;
+  line-height: 1;
+  display: block;
+}
+
+.emojiLabel {
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  color: $toolbar-icon;
+  font-family: $font-system;
+  text-align: center;
+
+  .activeEmoji & {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}

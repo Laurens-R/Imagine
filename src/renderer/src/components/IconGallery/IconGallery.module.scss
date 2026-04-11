@@ -1,0 +1,126 @@
+@use 'sass:color';
+
+.gallery {
+  position: fixed;
+  bottom: $toolbar-height + 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  background: color.adjust($toolbar-bg, $lightness: 6%);
+  border: 1px solid $toolbar-border;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 380px;
+}
+
+// ── Category tabs ─────────────────────────────────────────────────────────────
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px 4px;
+  border-bottom: 1px solid $toolbar-border;
+  overflow-x: auto;
+  flex-shrink: 0;
+
+  &::-webkit-scrollbar {
+    height: 0;
+  }
+}
+
+.tab {
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: $border-radius-sm;
+  background: transparent;
+  color: $toolbar-icon;
+  font-size: 11px;
+  font-family: $font-system;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $toolbar-hover;
+    color: $toolbar-text;
+  }
+
+  &.activeTab {
+    background: $accent-primary;
+    color: #ffffff;
+    border-color: transparent;
+  }
+}
+
+// ── Icon grid ─────────────────────────────────────────────────────────────────
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+}
+
+.iconBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 60px;
+  height: 60px;
+  border: 1px solid transparent;
+  border-radius: $border-radius-md;
+  background: transparent;
+  color: $toolbar-icon;
+  cursor: pointer;
+  padding: 6px 4px 4px;
+  transition: all $transition-fast;
+
+  svg {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    color: inherit;
+    font-family: $font-system;
+    text-align: center;
+  }
+
+  &:hover {
+    background: $toolbar-hover;
+    color: $toolbar-text;
+    border-color: $toolbar-border;
+  }
+
+  &.activeIcon {
+    background: $accent-primary;
+    color: #ffffff;
+    border-color: transparent;
+
+    span {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+}
