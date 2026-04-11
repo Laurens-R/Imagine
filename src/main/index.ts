@@ -182,6 +182,15 @@ Elements: id(str), type, x, y (canvas coords), zIndex(int), rotation(deg)
 - shape: width, height, shapeType(rectangle|square|circle|ellipse|triangle|diamond|star), fillColor, strokeColor, roughness(0-3), seed(int)
 - image: width, height, caption (dataUrl excluded)
 - arrow: x2, y2, color(hex), strokeWidth(int), showArrowhead(bool)
+- icon: width, height, iconId(str), color(hex), strokeWidth(int)
+  Valid iconIds: arrow-right, arrow-left, arrow-up, arrow-down, arrow-up-right, arrow-down-left,
+  chevron-right, chevron-left, chevron-up, chevron-down, refresh-cw, repeat,
+  check, x, plus, minus, star, heart, thumbs-up, thumbs-down, exclamation, circle-check, circle-x, ban, question, info,
+  message-circle, message-square, mail, phone, bell, user, users, share, send, link, globe, broadcast,
+  home, search, settings, book, calendar, clock, lock, key, pencil, trash, eye, flag, tag, folder,
+  sun, moon, cloud, cloud-rain, wind, snowflake, flame, leaf, droplets, zap,
+  monitor, smartphone, tablet, cpu, wifi, bluetooth, battery, camera, mic, code, terminal, database, server, cloud-upload, cloud-download
+- emoji: width, height, emoji(unicode char e.g. "😀"), fontSize(number — typically height×0.75)
 - drawing: bounding x/y/width/height only
 Connections: {id, sourceId, targetId, label, color}
 Groups: {id, childIds[]}
@@ -239,7 +248,9 @@ NEVER space new elements more than 300 px apart unless the user explicitly asks 
 - Default sticky note: font "Caveat", fontSize 20, backgroundColor "#fef08a", width 200 height 180
 - Default text-box: font "Caveat", fontSize 18, color "#1a1a1a", width 240 height 60
 - Default shape: roughness 1.5, strokeColor "#1a1a1a", fillColor "transparent"
-- Default arrow: color "#333333", strokeWidth 2, showArrowhead true`;
+- Default arrow: color "#333333", strokeWidth 2, showArrowhead true
+- Default icon: width 64, height 64, color "#1a1a1a", strokeWidth 2
+- Default emoji: width 80, height 80, fontSize 60`;
 
   ipcMain.handle('ai:call', async (_e, prompt: string, board: unknown) => {
     try {

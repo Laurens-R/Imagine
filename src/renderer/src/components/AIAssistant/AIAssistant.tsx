@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useWhiteboardStore } from '../../store/whiteboardStore';
 import { executeAIResponse } from '../../utils/aiExecutor';
 import type { AIResponse } from '../../types/aiCommands';
-import type { ImageElement } from '../../types';
+import type { ImageElement, IconElement } from '../../types';
 import styles from './AIAssistant.module.scss';
 
 const EXAMPLE_PROMPTS = [
@@ -33,6 +33,11 @@ function buildCompactBoard() {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { dataUrl: _d, ...rest } = el as ImageElement;
       return rest;
+    }
+    // Icon elements: keep all fields (iconId, color, strokeWidth) but no SVG paths are stored on the element anyway
+    if (el.type === 'icon') {
+      const { id, type, x, y, width, height, rotation, zIndex, iconId, color, strokeWidth } = el as IconElement;
+      return { id, type, x, y, width, height, rotation, zIndex, iconId, color, strokeWidth };
     }
     // Truncate long text fields to keep the snapshot compact
     if ('text' in el && typeof el.text === 'string' && el.text.length > MAX_TEXT_LEN) {
