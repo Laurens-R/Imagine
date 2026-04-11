@@ -320,7 +320,6 @@ export const Toolbar: React.FC = () => {
               className={`${styles.shapeBtn} ${shapeType === s.value ? styles.active : ''}`}
               onClick={() => {
                 setShapeType(s.value);
-                setShapePanelOpen(false);
               }}
               title={s.label}
             >

@@ -142,7 +142,7 @@ export const Whiteboard: React.FC<{
   // Multi-selection group drag
   const multiDragRef = useRef<{
     mx: number; my: number;
-    origins: { id: string; x: number; y: number; x2?: number; y2?: number }[];
+    origins: { id: string; x: number; y: number; x2?: number; y2?: number; points?: [number, number, number][] }[];
   } | null>(null);
 
   // Image file input
@@ -152,6 +152,9 @@ export const Whiteboard: React.FC<{
   // Arrow tool – first click sets start, second click commits
   const [arrowStart, setArrowStart] = useState<{ x: number; y: number } | null>(null);
   const [arrowPreview, setArrowPreview] = useState<{ x: number; y: number } | null>(null);
+
+  // Cursor canvas position for placement previews (sticky-note, text-box)
+  const [cursorCanvas, setCursorCanvas] = useState<{ x: number; y: number } | null>(null);
 
   // ── Context menu ───────────────────────────────────────────────────────────
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; canvasX: number; canvasY: number } | null>(null);
@@ -343,6 +346,14 @@ export const Whiteboard: React.FC<{
         if (hasGroup) ungroupSelected();
         else groupSelected();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          e.preventDefault();
+          handleCopy(false);
+          handlePaste();
+        }
+      }
       if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
         const active = document.activeElement;
         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
@@ -387,6 +398,7 @@ export const Whiteboard: React.FC<{
         setShapeStart(null);
         setArrowStart(null);
         setArrowPreview(null);
+        setCursorCanvas(null);
         isDrawingRef.current = false;
         setActiveDrawing(null);
         lassoStartRef.current = null;
@@ -423,7 +435,6 @@ export const Whiteboard: React.FC<{
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 0.93;
       const newZoom = Math.min(Math.max(zoom * factor, 0.15), 4);
@@ -553,14 +564,21 @@ export const Whiteboard: React.FC<{
             setArrowStart({ x, y });
             setArrowPreview({ x, y });
           } else {
-            // Second click – commit
+            // Second click – commit; hold Shift to lock to H/V axis
+            let ex = x, ey = y;
+            if (e.shiftKey) {
+              const adx = Math.abs(x - arrowStart.x);
+              const ady = Math.abs(y - arrowStart.y);
+              if (adx > ady) ey = arrowStart.y;
+              else ex = arrowStart.x;
+            }
             snapshot();
             const arrowEl: Omit<ArrowElement, 'id' | 'zIndex'> = {
               type: 'arrow',
               x: arrowStart.x,
               y: arrowStart.y,
-              x2: x,
-              y2: y,
+              x2: ex,
+              y2: ey,
               rotation: 0,
               color,
               strokeWidth,
@@ -569,7 +587,7 @@ export const Whiteboard: React.FC<{
             addElement(arrowEl);
             setArrowStart(null);
             setArrowPreview(null);
-            setTool('select');
+            // Stay in current tool – ready for next line/arrow
           }
           break;
         }
@@ -666,9 +684,21 @@ export const Whiteboard: React.FC<{
         setPendingConnection({ ...pendingConnection, currentX: x, currentY: y });
       }
 
-      // Arrow preview – track cursor after first click
-      if (tool === 'arrow' && arrowStart) {
-        setArrowPreview(snap(rawMx, rawMy));
+      // Arrow/line preview – track cursor after first click; Shift locks to H/V axis
+      if ((tool === 'arrow' || tool === 'line') && arrowStart) {
+        let px = rawMx, py = rawMy;
+        if (e.shiftKey) {
+          const adx = Math.abs(rawMx - arrowStart.x);
+          const ady = Math.abs(rawMy - arrowStart.y);
+          if (adx > ady) py = arrowStart.y;
+          else px = arrowStart.x;
+        }
+        setArrowPreview(snap(px, py));
+      }
+
+      // Cursor preview position for sticky-note / text-box placement
+      if (tool === 'sticky-note' || tool === 'text-box') {
+        setCursorCanvas({ x, y });
       }
     },
     [isPanning, toCanvas, snap, tool, activeDrawing, shapeStart, shapePreview, pendingConnection, setPan, removeDrawingsAt, setPendingConnection, setLasso, arrowStart, setArrowPreview]
@@ -926,7 +956,7 @@ export const Whiteboard: React.FC<{
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onMouseLeave={(e) => { handleMouseUp(e); setCursorCanvas(null); }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}
@@ -983,7 +1013,11 @@ export const Whiteboard: React.FC<{
               key={el.id}
               element={el}
               isSelected={selectedElementIds.has(el.id)}
+              tool={tool}
+              zoom={zoom}
+              pan={pan}
               onSelect={() => handleElementClick(el.id)}
+              onUpdate={(updates) => updateElement(el.id, updates as Partial<WhiteboardElement>)}
             />
           ))}
 
@@ -1180,6 +1214,41 @@ export const Whiteboard: React.FC<{
             return null;
           })}
         </div>
+
+        {/* ── Sticky-note cursor preview ─────────────────────────────────── */}
+        {tool === 'sticky-note' && cursorCanvas && (
+          <div
+            style={{
+              position: 'absolute',
+              left: cursorCanvas.x - 100,
+              top: cursorCanvas.y - 60,
+              width: 200,
+              height: 180,
+              backgroundColor: stickyColor,
+              opacity: 0.45,
+              borderRadius: 6,
+              pointerEvents: 'none',
+              boxShadow: '2px 2px 6px rgba(0,0,0,0.15)',
+            }}
+          />
+        )}
+
+        {/* ── Text-box cursor preview ────────────────────────────────────── */}
+        {tool === 'text-box' && cursorCanvas && (
+          <div
+            style={{
+              position: 'absolute',
+              left: cursorCanvas.x - 120,
+              top: cursorCanvas.y - 30,
+              width: 240,
+              height: 60,
+              border: '2px dashed rgba(124,106,255,0.55)',
+              backgroundColor: 'rgba(124,106,255,0.08)',
+              borderRadius: 4,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </div>
 
       {/* ── Toolbar (outside viewport) ─────────────────────────────────────── */}
@@ -1225,62 +1294,227 @@ export const Whiteboard: React.FC<{
           };
           reader.readAsDataURL(file);
         }}
-      />      {/* ── Multi-selection drag overlay ───────────────────────────────────────── */}
-      {multiSelectionRect && (
-        <div
-          className={styles.multiSelectRect}
-          style={{
-            left:   multiSelectionRect.left,
-            top:    multiSelectionRect.top,
-            width:  multiSelectionRect.width,
-            height: multiSelectionRect.height,
-          }}
-          onMouseDown={(e) => {
-            if (tool !== 'select') return;
-            e.stopPropagation();
-            e.preventDefault();
-            snapshot();
-            // Expand group IDs to their physical child elements
-            const origins = selectedIds.flatMap((id) => {
-              const grp = groups.find((g) => g.id === id);
-              const physIds = grp ? grp.childIds : [id];
-              return elements
-                .filter((el) => physIds.includes(el.id))
-                .map((el) => {
-                  if (el.type === 'arrow') {
-                    return { id: el.id, x: el.x, y: el.y, x2: (el as ArrowElement).x2, y2: (el as ArrowElement).y2 };
-                  }
-                  return { id: el.id, x: el.x, y: el.y };
-                });
-            });
-            multiDragRef.current = { mx: e.clientX, my: e.clientY, origins };
+      />      {/* ── Multi-selection drag / resize / rotate overlay ─────────────────────── */}
+      {multiSelectionRect && (() => {
+        // Canvas-space bounds for resize & rotate math
+        const physicalElsGrp = selectedIds.flatMap((id) => {
+          const grp = groups.find((g) => g.id === id);
+          if (grp) return elements.filter((el) => grp.childIds.includes(el.id));
+          return elements.filter((el) => el.id === id);
+        });
+        if (physicalElsGrp.length === 0) return null;
+        const grpBnds = physicalElsGrp.map(getElementBounds);
+        const grpMinX = Math.min(...grpBnds.map((b) => b.x));
+        const grpMinY = Math.min(...grpBnds.map((b) => b.y));
+        const grpMaxX = Math.max(...grpBnds.map((b) => b.x + b.w));
+        const grpMaxY = Math.max(...grpBnds.map((b) => b.y + b.h));
+        const grpW = Math.max(grpMaxX - grpMinX, 1);
+        const grpH = Math.max(grpMaxY - grpMinY, 1);
+        const grpCX = grpMinX + grpW / 2;
+        const grpCY = grpMinY + grpH / 2;
+        const screenCX = grpCX * zoom + pan.x;
+        const screenCY = grpCY * zoom + pan.y;
 
-            const onMove = (ev: MouseEvent) => {
-              if (!multiDragRef.current) return;
-              const ddx = (ev.clientX - multiDragRef.current.mx) / zoom;
-              const ddy = (ev.clientY - multiDragRef.current.my) / zoom;
-              multiDragRef.current.origins.forEach(({ id, x, y, x2, y2 }) => {
-                const updates: Record<string, number> = {
-                  x: gridEnabled ? snapVal(x + ddx, gridSize) : x + ddx,
-                  y: gridEnabled ? snapVal(y + ddy, gridSize) : y + ddy,
-                };
-                if (x2 !== undefined && y2 !== undefined) {
-                  updates.x2 = gridEnabled ? snapVal(x2 + ddx, gridSize) : x2 + ddx;
-                  updates.y2 = gridEnabled ? snapVal(y2 + ddy, gridSize) : y2 + ddy;
-                }
-                updateElement(id, updates as Partial<WhiteboardElement>);
+        const startGroupResize = (e: React.MouseEvent, hId: string) => {
+          e.stopPropagation();
+          e.preventDefault();
+          snapshot();
+          const origData = physicalElsGrp.map((el) => ({ ...el }));
+          const startMx = e.clientX, startMy = e.clientY;
+          const onMove = (ev: MouseEvent) => {
+            const ddx = (ev.clientX - startMx) / zoom;
+            const ddy = (ev.clientY - startMy) / zoom;
+            let nbx = grpMinX, nby = grpMinY, nbw = grpW, nbh = grpH;
+            if (hId.includes('w')) { nbx = grpMinX + ddx; nbw = grpW - ddx; }
+            if (hId.includes('e')) { nbw = grpW + ddx; }
+            if (hId.includes('n')) { nby = grpMinY + ddy; nbh = grpH - ddy; }
+            if (hId.includes('s')) { nbh = grpH + ddy; }
+            if (nbw < 20) { if (hId.includes('w')) nbx = grpMinX + grpW - 20; nbw = 20; }
+            if (nbh < 20) { if (hId.includes('n')) nby = grpMinY + grpH - 20; nbh = 20; }
+            const sx = nbw / grpW, sy = nbh / grpH;
+            origData.forEach((orig) => {
+              if (orig.type === 'arrow') {
+                const a = orig as ArrowElement;
+                updateElement(orig.id, {
+                  x: nbx + (a.x - grpMinX) * sx,
+                  y: nby + (a.y - grpMinY) * sy,
+                  x2: nbx + (a.x2 - grpMinX) * sx,
+                  y2: nby + (a.y2 - grpMinY) * sy,
+                } as Partial<WhiteboardElement>);
+              } else if (orig.type === 'drawing') {
+                const d = orig as DrawingElement;
+                const newPts = d.points.map(([px, py, pr]) => [
+                  nbx + (px - grpMinX) * sx, nby + (py - grpMinY) * sy, pr,
+                ] as [number, number, number]);
+                updateElement(orig.id, { x: newPts[0][0], y: newPts[0][1], points: newPts } as Partial<WhiteboardElement>);
+              } else {
+                const s = orig as StickyNoteElement | TextBoxElement | ShapeElement | ImageElement;
+                updateElement(orig.id, {
+                  x: nbx + (s.x - grpMinX) * sx,
+                  y: nby + (s.y - grpMinY) * sy,
+                  width: s.width * sx,
+                  height: s.height * sy,
+                } as Partial<WhiteboardElement>);
+              }
+            });
+          };
+          const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        };
+
+        const startGroupRotate = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          e.preventDefault();
+          snapshot();
+          const startAngle = Math.atan2(e.clientY - screenCY, e.clientX - screenCX) * (180 / Math.PI);
+          const origData = physicalElsGrp.map((el) => ({ ...el }));
+          const onMove = (ev: MouseEvent) => {
+            const curAngle = Math.atan2(ev.clientY - screenCY, ev.clientX - screenCX) * (180 / Math.PI);
+            let delta = curAngle - startAngle;
+            if (ev.shiftKey) delta = Math.round(delta / 45) * 45;
+            const rad = delta * (Math.PI / 180);
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+            origData.forEach((orig) => {
+              if (orig.type === 'arrow') {
+                const a = orig as ArrowElement;
+                const rx1 = a.x - grpCX, ry1 = a.y - grpCY;
+                const rx2 = a.x2 - grpCX, ry2 = a.y2 - grpCY;
+                updateElement(orig.id, {
+                  x: grpCX + rx1 * cos - ry1 * sin, y: grpCY + rx1 * sin + ry1 * cos,
+                  x2: grpCX + rx2 * cos - ry2 * sin, y2: grpCY + rx2 * sin + ry2 * cos,
+                  rotation: orig.rotation + delta,
+                } as Partial<WhiteboardElement>);
+              } else if (orig.type === 'drawing') {
+                const d = orig as DrawingElement;
+                const newPts = d.points.map(([px, py, pr]) => {
+                  const dx = px - grpCX, dy = py - grpCY;
+                  return [grpCX + dx * cos - dy * sin, grpCY + dx * sin + dy * cos, pr] as [number, number, number];
+                });
+                updateElement(orig.id, { x: newPts[0][0], y: newPts[0][1], points: newPts, rotation: orig.rotation + delta } as Partial<WhiteboardElement>);
+              } else {
+                const s = orig as StickyNoteElement | TextBoxElement | ShapeElement | ImageElement;
+                const elCX = s.x + s.width / 2, elCY = s.y + s.height / 2;
+                const dx = elCX - grpCX, dy = elCY - grpCY;
+                updateElement(orig.id, {
+                  x: grpCX + dx * cos - dy * sin - s.width / 2,
+                  y: grpCY + dx * sin + dy * cos - s.height / 2,
+                  rotation: orig.rotation + delta,
+                } as Partial<WhiteboardElement>);
+              }
+            });
+          };
+          const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        };
+
+        const hBtnStyle: React.CSSProperties = {
+          position: 'absolute', width: 10, height: 10, background: 'white',
+          border: '1.5px solid #7c6aff', borderRadius: 2,
+          transform: 'translate(-50%, -50%)', zIndex: 1001,
+        };
+        const groupHandles = [
+          { id: 'nw', left: '0%',   top: '0%',   cursor: 'nwse-resize' },
+          { id: 'n',  left: '50%',  top: '0%',   cursor: 'ns-resize'   },
+          { id: 'ne', left: '100%', top: '0%',   cursor: 'nesw-resize' },
+          { id: 'e',  left: '100%', top: '50%',  cursor: 'ew-resize'   },
+          { id: 'se', left: '100%', top: '100%', cursor: 'nwse-resize' },
+          { id: 's',  left: '50%',  top: '100%', cursor: 'ns-resize'   },
+          { id: 'sw', left: '0%',   top: '100%', cursor: 'nesw-resize' },
+          { id: 'w',  left: '0%',   top: '50%',  cursor: 'ew-resize'   },
+        ];
+
+        return (
+          <div
+            className={styles.multiSelectRect}
+            style={{
+              left:   multiSelectionRect.left,
+              top:    multiSelectionRect.top,
+              width:  multiSelectionRect.width,
+              height: multiSelectionRect.height,
+            }}
+            onMouseDown={(e) => {
+              if ((e.target as Element) !== e.currentTarget) return;
+              if (tool !== 'select') return;
+              e.stopPropagation();
+              e.preventDefault();
+              snapshot();
+              const origins = selectedIds.flatMap((id) => {
+                const grp = groups.find((g) => g.id === id);
+                const physIds = grp ? grp.childIds : [id];
+                return elements
+                  .filter((el) => physIds.includes(el.id))
+                  .map((el) => {
+                    if (el.type === 'arrow') {
+                      return { id: el.id, x: el.x, y: el.y, x2: (el as ArrowElement).x2, y2: (el as ArrowElement).y2 };
+                    }
+                    if (el.type === 'drawing') {
+                      return { id: el.id, x: el.x, y: el.y, points: (el as DrawingElement).points };
+                    }
+                    return { id: el.id, x: el.x, y: el.y };
+                  });
               });
-            };
-            const onUp = () => {
-              multiDragRef.current = null;
-              window.removeEventListener('mousemove', onMove);
-              window.removeEventListener('mouseup', onUp);
-            };
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onUp);
-          }}
-        />
-      )}
+              multiDragRef.current = { mx: e.clientX, my: e.clientY, origins };
+              const onMove = (ev: MouseEvent) => {
+                if (!multiDragRef.current) return;
+                const ddx = (ev.clientX - multiDragRef.current.mx) / zoom;
+                const ddy = (ev.clientY - multiDragRef.current.my) / zoom;
+                multiDragRef.current.origins.forEach(({ id, x, y, x2, y2, points }) => {
+                  if (points) {
+                    const newPts = points.map(([px, py, pr]) => [
+                      gridEnabled ? snapVal(px + ddx, gridSize) : px + ddx,
+                      gridEnabled ? snapVal(py + ddy, gridSize) : py + ddy,
+                      pr,
+                    ] as [number, number, number]);
+                    updateElement(id, { x: newPts[0][0], y: newPts[0][1], points: newPts } as Partial<WhiteboardElement>);
+                    return;
+                  }
+                  const updates: Record<string, number> = {
+                    x: gridEnabled ? snapVal(x + ddx, gridSize) : x + ddx,
+                    y: gridEnabled ? snapVal(y + ddy, gridSize) : y + ddy,
+                  };
+                  if (x2 !== undefined && y2 !== undefined) {
+                    updates.x2 = gridEnabled ? snapVal(x2 + ddx, gridSize) : x2 + ddx;
+                    updates.y2 = gridEnabled ? snapVal(y2 + ddy, gridSize) : y2 + ddy;
+                  }
+                  updateElement(id, updates as Partial<WhiteboardElement>);
+                });
+              };
+              const onUp = () => {
+                multiDragRef.current = null;
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+              };
+              window.addEventListener('mousemove', onMove);
+              window.addEventListener('mouseup', onUp);
+            }}
+          >
+            {/* Resize handles */}
+            {groupHandles.map(({ id, left, top, cursor }) => (
+              <div key={id} style={{ ...hBtnStyle, left, top, cursor }} onMouseDown={(e) => startGroupResize(e, id)} />
+            ))}
+            {/* Rotation stem */}
+            <div style={{
+              position: 'absolute', left: '50%', top: 0,
+              width: 1.5, height: 32, background: '#7c6aff',
+              transform: 'translate(-50%, -100%)', pointerEvents: 'none',
+            }} />
+            {/* Rotation handle */}
+            <div
+              style={{
+                position: 'absolute', left: '50%', top: -32,
+                width: 18, height: 18, background: 'white',
+                border: '1.5px solid #7c6aff', borderRadius: '50%',
+                transform: 'translate(-50%, -50%)', cursor: 'grab',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, userSelect: 'none', zIndex: 1001,
+              }}
+              onMouseDown={startGroupRotate}
+            >↺</div>
+          </div>
+        );
+      })()}
 
       {/* ── Lasso selection rectangle ────────────────────────────────────────────── */}
       {lassoScreenRect && (
@@ -1379,17 +1613,117 @@ export const Whiteboard: React.FC<{
 interface DrawingPathProps {
   element: DrawingElement;
   isSelected: boolean;
+  tool: string;
+  zoom: number;
+  pan: { x: number; y: number };
   onSelect: () => void;
+  onUpdate: (updates: Partial<WhiteboardElement>) => void;
 }
 
-const DrawingPath: React.FC<DrawingPathProps> = ({ element, isSelected, onSelect }) => {
+const DrawingPath: React.FC<DrawingPathProps> = ({ element, isSelected, tool, zoom, pan, onSelect, onUpdate }) => {
+  const gridEnabled = useWhiteboardStore((s) => s.gridEnabled);
+  const gridSize = useWhiteboardStore((s) => s.gridSize);
+  const dragRef = useRef<{ mx: number; my: number; points: [number, number, number][] } | null>(null);
+
   const pathD = generateDrawingPath(element.points, element.size, true);
   if (!pathD) return null;
 
+  const pts = element.points;
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const bx = Math.min(...xs);
+  const by = Math.min(...ys);
+  const bw = Math.max(Math.max(...xs) - bx, 1);
+  const bh = Math.max(Math.max(...ys) - by, 1);
+  const cx = bx + bw / 2;
+  const cy = by + bh / 2;
+  const rotation = element.rotation ?? 0;
+  const transform = rotation !== 0 ? `rotate(${rotation}, ${cx}, ${cy})` : undefined;
+
+  const pad = 8;
+  const ROTATE_OFFSET = 28;
+  const HS = 8;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (tool !== 'select') return;
+    e.stopPropagation();
+    onSelect();
+    const origPts = element.points.slice() as [number, number, number][];
+    dragRef.current = { mx: e.clientX, my: e.clientY, points: origPts };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      const ddx = (ev.clientX - dragRef.current.mx) / zoom;
+      const ddy = (ev.clientY - dragRef.current.my) / zoom;
+      const newPts = dragRef.current.points.map(([px, py, pr]) => [
+        gridEnabled ? snapVal(px + ddx, gridSize) : px + ddx,
+        gridEnabled ? snapVal(py + ddy, gridSize) : py + ddy,
+        pr,
+      ] as [number, number, number]);
+      onUpdate({ x: newPts[0][0], y: newPts[0][1], points: newPts });
+    };
+    const onUp = () => { dragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleResizeMD = (e: React.MouseEvent, hId: string) => {
+    e.stopPropagation(); e.preventDefault();
+    const origPts = element.points.slice() as [number, number, number][];
+    const startMx = e.clientX, startMy = e.clientY;
+    const onMove = (ev: MouseEvent) => {
+      const ddx = (ev.clientX - startMx) / zoom;
+      const ddy = (ev.clientY - startMy) / zoom;
+      let nbx = bx, nby = by, nbw = bw, nbh = bh;
+      if (hId.includes('w')) { nbx = bx + ddx; nbw = bw - ddx; }
+      if (hId.includes('e')) { nbw = bw + ddx; }
+      if (hId.includes('n')) { nby = by + ddy; nbh = bh - ddy; }
+      if (hId.includes('s')) { nbh = bh + ddy; }
+      if (nbw < 10) { if (hId.includes('w')) nbx = bx + bw - 10; nbw = 10; }
+      if (nbh < 10) { if (hId.includes('n')) nby = by + bh - 10; nbh = 10; }
+      const sx = nbw / bw, sy = nbh / bh;
+      const newPts = origPts.map(([px, py, pr]) => [
+        nbx + (px - bx) * sx, nby + (py - by) * sy, pr,
+      ] as [number, number, number]);
+      onUpdate({ x: newPts[0][0], y: newPts[0][1], points: newPts });
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleRotateMD = (e: React.MouseEvent) => {
+    e.stopPropagation(); e.preventDefault();
+    const screenCX = cx * zoom + pan.x;
+    const screenCY = cy * zoom + pan.y;
+    const startAngle = Math.atan2(e.clientY - screenCY, e.clientX - screenCX) * (180 / Math.PI);
+    const startRot = rotation;
+    const onMove = (ev: MouseEvent) => {
+      const angle = Math.atan2(ev.clientY - screenCY, ev.clientX - screenCX) * (180 / Math.PI);
+      let newRot = startRot + (angle - startAngle);
+      if (ev.shiftKey) newRot = Math.round(newRot / 45) * 45;
+      onUpdate({ rotation: newRot });
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handles: { id: string; hx: number; hy: number; cursor: string }[] = [
+    { id: 'nw', hx: bx - pad,      hy: by - pad,      cursor: 'nwse-resize' },
+    { id: 'n',  hx: bx + bw / 2,   hy: by - pad,      cursor: 'ns-resize'   },
+    { id: 'ne', hx: bx + bw + pad, hy: by - pad,      cursor: 'nesw-resize' },
+    { id: 'e',  hx: bx + bw + pad, hy: by + bh / 2,   cursor: 'ew-resize'   },
+    { id: 'se', hx: bx + bw + pad, hy: by + bh + pad, cursor: 'nwse-resize' },
+    { id: 's',  hx: bx + bw / 2,   hy: by + bh + pad, cursor: 'ns-resize'   },
+    { id: 'sw', hx: bx - pad,      hy: by + bh + pad, cursor: 'nesw-resize' },
+    { id: 'w',  hx: bx - pad,      hy: by + bh / 2,   cursor: 'ew-resize'   },
+  ];
+
   return (
     <g
-      style={{ cursor: 'pointer', pointerEvents: 'all' }}
-      onClick={onSelect}
+      transform={transform}
+      style={{ cursor: tool === 'select' ? 'grab' : 'pointer', pointerEvents: 'all' }}
+      onMouseDown={handleMouseDown}
     >
       {isSelected && (
         <path
@@ -1409,6 +1743,37 @@ const DrawingPath: React.FC<DrawingPathProps> = ({ element, isSelected, onSelect
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {isSelected && tool === 'select' && (
+        <>
+          <rect
+            x={bx - pad} y={by - pad} width={bw + pad * 2} height={bh + pad * 2}
+            fill="none" stroke="#7c6aff" strokeWidth={1} strokeDasharray="4 3" rx={3}
+          />
+          {/* Rotation stem */}
+          <line
+            x1={bx + bw / 2} y1={by - pad}
+            x2={bx + bw / 2} y2={by - pad - ROTATE_OFFSET}
+            stroke="#7c6aff" strokeWidth={1.5}
+          />
+          {/* Rotation handle */}
+          <circle
+            cx={bx + bw / 2} cy={by - pad - ROTATE_OFFSET}
+            r={6} fill="white" stroke="#7c6aff" strokeWidth={1.5}
+            style={{ cursor: 'grab' }}
+            onMouseDown={handleRotateMD}
+          />
+          {/* Resize handles */}
+          {handles.map(({ id, hx, hy, cursor }) => (
+            <rect
+              key={id}
+              x={hx - HS / 2} y={hy - HS / 2} width={HS} height={HS}
+              fill="white" stroke="#7c6aff" strokeWidth={1.5} rx={1}
+              style={{ cursor }}
+              onMouseDown={(e) => handleResizeMD(e, id)}
+            />
+          ))}
+        </>
+      )}
     </g>
   );
 };
